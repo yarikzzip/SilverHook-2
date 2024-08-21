@@ -6,24 +6,454 @@
 #include <iostream>
 #include <string>
 #include "obfuscation.h"
-//Full Credits
-// "batman" (Was credited in MastoidHook)
-// Mio (original miohook)
-// Mastoid (MastoidHook)
-// SilverXK (Updated Hook) 
-// JewishTricks (Help with Cheats)
-// Chocolatte (Finding and testing DX11 Hook)
-// Kiero (For the DX11 Hook)
 
-// Removed Features for public
-// DLC Enabler/Disabler
-// Freeze Host
-// DOS Host
-// File Transfer
+typedef bool(__fastcall* CSessionPost)(void* pThis, CCommand* pCommand, bool ForceSend);
+CSessionPost CSessionPostHook;
+CSessionPost CSessionPostTramp;
 
-__forceinline void SMKOZGZ070P8()
+typedef CAddPlayerCommand* (__fastcall* GetCAddPlayerCommand)(void* pThis, CString* User, CString* Name, DWORD* unknown, int nMachineId, bool bHotjoin, __int64 a7);
+GetCAddPlayerCommand CAddPlayerCommandHook;
+GetCAddPlayerCommand CAddPlayerCommandTramp;
+
+typedef CStartGameCommand* (__fastcall* GetCStartGameCommand)(void* pThis);
+GetCStartGameCommand CStartGameCommandFunc;
+GetCStartGameCommand CStartGameCommandTramp;
+
+typedef CRemovePlayerCommand* (__fastcall* GetCRemovePlayerCommand)(void* pThis, int nMachineId, int eReason, long long a4);
+GetCRemovePlayerCommand CRemovePlayerCommandHook;
+GetCRemovePlayerCommand CRemovePlayerCommandTramp;
+
+typedef __int64(__fastcall* CGameStateSetPlayer)(void* pThis, int* Tag);
+CGameStateSetPlayer CGameStateSetPlayerHook;
+CGameStateSetPlayer CGameStateSetPlayerTramp;
+
+
+typedef CNameChange* (__fastcall* GetCNameChangeCommand)(void* pThis, CString* name);
+GetCNameChangeCommand CNameChangeFunc;
+GetCNameChangeCommand CNameChangeTramp;
+
+typedef CChatMessage* (__fastcall* GetCChatMessage)(void* pThis, __int64 a2, __int64 Message);
+GetCChatMessage CChatMessageHook;
+GetCChatMessage CChatMessageTramp;
+
+typedef CCrash* (__fastcall* GetCCrash)(void* pThis, unsigned int a1);
+GetCCrash CCrashFunc;
+GetCCrash CCrashTramp;
+
+typedef CCreateEquipmentVariant* (__fastcall* GetCCreateEquipmentVariant)(void* pThis, __int64 a2, __int64 a3, int a4, __int64* a5, char a6);
+GetCCreateEquipmentVariant CCreateEquipmentFunc;
+GetCCreateEquipmentVariant CCreateEquipmentTramp;
+
+typedef CPauseGameCommand* (__fastcall* GetCPauseGameCommand)(void* pthis, __int64 a2, char a3);
+GetCPauseGameCommand CPauseGameFunc;
+
+typedef CAiEnableCommand* (__fastcall* GetEnableAI)(void* pThis, int* tag, int toggled);
+GetEnableAI AIEnableFunc;
+
+typedef CChatLeaveFake* (_fastcall* GetCChatLeaveFake)(void* pThis, int eReason);
+GetCChatLeaveFake ChatLeaveFunc;
+
+typedef LPVOID(__fastcall* GetCCommand)(__int64 a1);
+GetCCommand GetCCommandFunc;
+
+typedef CGameSpeed* (__fastcall* GetCGameSpeed)(void* pThis);
+GetCGameSpeed IncreaseSpeedFunc;
+GetCGameSpeed DecreaseSpeedFunc;
+
+typedef CSetSpeed* (__fastcall* GetCGameSetSpeed)(void* pThis, int speed);
+GetCGameSetSpeed SetSpeedFunc;
+
+typedef EmptyTest* (__fastcall* GetCustomDiffM)(void* pThis, __int64 a2, int a3);
+GetCustomDiffM GCDMF;
+GetCustomDiffM GCDMH;
+
+typedef EmptyTest* (__fastcall* GetCustomDiff)(void* pThis, int a2);
+GetCustomDiff GetCustomF;
+GetCustomDiff GetCustomH;
+
+typedef EmptyTest* (__fastcall* GetAntiBan)(void* pThis, char a2);
+GetAntiBan AntiBanFunc;
+GetAntiBan AntiBanTramp;
+
+int FakeM = 1;
+int FakeM2 = 50;
+bool FakeSpammer = false;
+
+bool AllocatedConsole = false;
+bool Debug = true;
+bool bRefuseConnect = false;
+
+//ChatMessage
+//__int64 pCMessage = NULL;
+
+//SessionPost
+void* pCSession = nullptr;
+
+//AddPlayerCommand
+void* pCAddPlayer = nullptr;
+DWORD* dUnknown;
+int dMachine;
+__int64 dPdx;
+CString* dUser;
+CString* dHname;
+bool bSpoofSteam = false;
+bool bJoinAsGhost = false;
+int iMyMachineID;
+int iMachineIDFake = 50;
+__int64 iParadoxSocialID = 0;
+CString* empty = new CString;
+
+//RemovePlayerCommand
+void* pCRemovePlayer = nullptr;
+ERemovalReason dReason;
+int RMID;
+int dRUnknown;
+
+//GameSetState
+void* pCGameState = nullptr;
+
+//Langauge
+bool lEnglish = true;
+bool lRussian = false;
+bool HasNotChanged = false;
+
+
+// We do l at the start to define it as languange (you dont have to do this but it makes it easier to read)
+std::string lStartGame = "";
+
+
+
+//ImGui
+bool bMenuOpen = true;
+bool bCE = false;
+bool bCrasher = false;
+bool bXP = false;
+char TagBuffer[16];
+
+//something something my favourite show is BFDI (Menus, obviously)
+bool bLobbyMenu = false;
+bool bGameMenu = false;
+bool bSettingsMenu = false;
+
+//Strengthen
+int boost = 0;
+__int64 CountryTag;
+
+//Hook
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+Present oPresent;
+HWND window = NULL;
+WNDPROC oWndProc;
+ID3D11Device* pDevice = NULL;
+ID3D11DeviceContext* pContext = NULL;
+ID3D11RenderTargetView* mainRenderTargetView;
+uintptr_t GameBase = (uintptr_t)GetModuleHandleA("hoi4.exe");
+
+
+//Console
+void printm(std::string str)
 {
-	//junkcode
+	FILE* fDummy;
+	freopen_s(&fDummy, "CONOUT$", "w", stdout);
+
+	std::cout << "[SilverHook] " << str << std::endl;
+}
+
+//Cheats
+void PatchMemory(uintptr_t address, unsigned char* patch, DWORD size)
+{
+	DWORD oldProtect;
+	VirtualProtect((LPVOID)address, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+	memcpy((LPVOID)address, patch, size);
+	VirtualProtect((LPVOID)address, size, oldProtect, &oldProtect);
+}
+
+
+void MultiplayerLobbyHack()
+{
+
+	uintptr_t address = GameBase + 0x185CD2F;
+
+	unsigned char patch[] = { 0x74, 0x0F, 0x83, 0xFA, 0x01, 0x00 }; 
+
+	void* MLHmem = VirtualAlloc(nullptr, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+
+	if (MLHmem != nullptr)
+	{
+		DWORD relativeOffset = (GameBase + 0x185CD40) - (address + sizeof(patch));
+		memcpy(MLHmem, patch, sizeof(patch));
+		*(BYTE*)((uintptr_t)MLHmem) = 0x0F;
+		*(BYTE*)((uintptr_t)MLHmem + 1) = 0x83;
+		*(DWORD*)((uintptr_t)MLHmem + 2) = relativeOffset;
+
+		PatchMemory(address, (unsigned char*)MLHmem, sizeof(patch));
+		VirtualFree(MLHmem, 0, MEM_RELEASE);
+	}
+
+}
+
+//void cmp() {
+	//uintptr_t address = GameBase + 0x185CD35;
+
+	//unsigned char patch[] = { 0x74, 0x0F, 0x83, 0xFA, 0x01, 0x00 };
+
+	//void* MLHmem = VirtualAlloc(nullptr, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+//}
+
+void UpgradeLevelLimiter() {
+
+	uintptr_t addr = GameBase + 0x1B1C1E0;
+
+	unsigned char newValue = 0x99;
+
+	unsigned char newCode[] = {
+		0x41, 0xC7, 0x85, 0x0C, 0x01, 0x00, 0x00, newValue, 0x00,0x00, 0x00,  
+		  
+		0x90, 0x90, 0x90, 0x90   
+	};
+
+	
+	PatchMemory(addr, newCode, sizeof(newCode));
+	
+
+}
+
+
+/*void* __cdecl mBase(size_t Size) {
+	size_t i;
+	void* result;
+	i = Size;
+	if (Size > 0xFFFFFFFFFFFFFFE0ui64)
+	{
+		printm("Malloc Error");
+		return 0i64;
+	}
+	else
+	{
+		if (!Size)
+			i = 1i64;
+		while (1)
+		{
+			result = HeapAlloc(0, 0, i);
+			if (result)
+				break;
+			if (!_callnewh(i)) {
+				printm("Malloc Error");
+				return 0i64;
+			}
+		}
+	}
+	return result;
+}*/
+
+
+void* __fastcall SizeF(size_t Size) {
+	size_t i;
+	void* result;
+	
+
+	for (i = Size; ; Size = i) {
+		result = _malloc_base(Size);
+		if (result) {
+			break;
+		}
+		if (!_callnewh(i)) {
+			if (i != -1i64) {
+				printm("Bad Allocation");
+			}
+			printm("Bad Array Length");
+		}
+	}
+	return result;
+}
+
+
+
+template <typename T>
+T ReadMemory(uintptr_t address)
+{
+	return *reinterpret_cast<T*>(address);
+}
+
+uintptr_t OffsetCalculator(uintptr_t baseAddress, const std::vector<uintptr_t>& offsets)
+{
+	uintptr_t address = baseAddress;
+	for (uintptr_t offset : offsets)
+	{
+		address = ReadMemory<uintptr_t>(address);
+		address += offset;
+	}
+	return address;
+}
+
+
+
+void ChangeIntAddressValue(uintptr_t bAddr, uintptr_t bOff, int Tag)
+{
+
+	uintptr_t baseAddress = bAddr; 
+	
+	std::vector<uintptr_t> offsets = { bOff };
+	
+	uintptr_t finalAddress = OffsetCalculator(GameBase + baseAddress, offsets);
+
+	DWORD* pValue = reinterpret_cast<DWORD*>(finalAddress);
+	DWORD oldProtect;
+
+	VirtualProtect(pValue, sizeof(DWORD), PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	*pValue = Tag;
+
+	VirtualProtect(pValue, sizeof(DWORD), oldProtect, &oldProtect);
+
+}
+
+void ChangeByteAddressValue(uintptr_t addr)
+{
+	uintptr_t address = GameBase + addr; 
+	BYTE* pValue = (BYTE*)address;
+	DWORD oldProtect;
+
+	VirtualProtect(pValue, sizeof(BYTE), PAGE_EXECUTE_READWRITE, &oldProtect);
+	
+	if (*pValue == 1)
+	{
+		*pValue = 0;
+	}
+	else
+	{
+		*pValue = 1;
+	}
+	
+	VirtualProtect(pValue, sizeof(BYTE), oldProtect, &oldProtect);
+}
+
+
+//IngameFunctions
+void Crasher(int a1) {
+	CCrash* x = (CCrash*)GetCCommandFunc(48);
+	x = CCrashFunc(x, a1);
+	CSessionPostTramp(pCSession, x, true);
+}
+
+
+void StartGameFunc() {
+
+	//Using the manually made function instead lol!
+	CStartGameCommand* StartGame = (CStartGameCommand*)GetCCommandFunc(41);
+
+	StartGame = CStartGameCommandFunc((StartGame));
+	CSessionPostTramp(pCSession, StartGame, true);
+}
+
+void RemovalReason(ERemovalReason e) {
+	//Only host can remove themselves? (possibly machine ID)
+	CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(41);
+	RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, RMID, e, dRUnknown);
+	CSessionPostTramp(pCSession, RemovePlayer, true);
+}
+
+
+
+void DefaultImGui() {
+	ImVec4 NormalColor = ImVec4(0.047f, 0.047f, 0.047f, 1.0f);
+	ImVec4 HoverColor = ImVec4(0.066f, 0.066f, 0.066f, 1.0f);
+	ImVec4 ActiveColor = ImVec4(0.076f, 0.076f, 0.076f, 1.0f);
+	ImVec4 BackgroundColor = ImVec4(0.08f, 0.08f, 0.08f, 1.0f);
+	ImVec4 PureBlackColor = ImVec4(0.01f, 0.01f, 0.01f, 1.0f);
+	ImVec4 WhiteColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_Button] = NormalColor;  // Normal Colors
+	style.Colors[ImGuiCol_FrameBg] = NormalColor;
+	style.Colors[ImGuiCol_ResizeGrip] = NormalColor;
+	style.Colors[ImGuiCol_Separator] = NormalColor;
+
+	style.Colors[ImGuiCol_ButtonHovered] = HoverColor; //Hovered Colors
+	style.Colors[ImGuiCol_ResizeGripHovered] = HoverColor;
+	style.Colors[ImGuiCol_FrameBgHovered] = HoverColor;
+	style.Colors[ImGuiCol_SeparatorHovered] = HoverColor;
+
+	style.Colors[ImGuiCol_ButtonActive] = ActiveColor; // Active Colors
+	style.Colors[ImGuiCol_ResizeGripActive] = ActiveColor;
+	style.Colors[ImGuiCol_SeparatorActive] = ActiveColor;
+	style.Colors[ImGuiCol_FrameBgActive] = ActiveColor;
+
+	style.Colors[ImGuiCol_WindowBg] = BackgroundColor; // Background
+
+	style.Colors[ImGuiCol_TitleBg] = PureBlackColor; // Title
+	style.Colors[ImGuiCol_TitleBgCollapsed] = PureBlackColor;
+	style.Colors[ImGuiCol_TitleBgActive] = PureBlackColor;
+
+	style.Colors[ImGuiCol_CheckMark] = WhiteColor; // Checkmark
+}
+
+__int64* TagFixFunc(__int64* a1, __int64 a2) {
+
+	__int64* v2;
+	__int64* v3;
+	unsigned __int64 v5;
+	__int64 v6;
+	void* v7;
+	void* v8;
+	__int64* result;
+
+	v2 = 0i64;
+	v3 = (__int64*)a2;
+	*a1 = 0i64;
+	a1[2] = 0i64;
+	a1[3] = 0i64;
+	v5 = *(__int64*)(a2 + 16);
+	if (*(__int64*)(a2 + 24) >= 16ui64)
+		v3 = *(__int64**)a2;
+	if (v5 >= 0x10)
+	{
+		v6 = v5 | 0xF;
+		if ((v5 | 0xF) > 0x7FFFFFFFFFFFFFFFi64)
+			v6 = 0x7FFFFFFFFFFFFFFFi64;
+		if ((unsigned __int64)(v6 + 1) < 0x1000)
+		{
+			if (v6 != -1)
+				v2 = (__int64*)SizeF(v6 + 1);
+		}
+		else
+		{
+			if (v6 + 40 <= (unsigned __int64)(v6 + 1))
+				printm("Bad Array Type");
+			v7 = SizeF(v6 + 40);
+			v8 = v7;
+			v2 = (__int64*)(((unsigned __int64)v7 + 39) & 0xFFFFFFFFFFFFFFE0ui64);
+			*(v2 - 1) = (__int64)v8;
+		}
+		*a1 = *v2;
+		typedef EmptyTest* (__fastcall* Func)(__int64* a1, __int64* a2, unsigned __int64 a3);
+		Func RandFunc;
+
+		RandFunc = Func(GameBase + 0x2136D40);
+		RandFunc(v2, v3, v5 + 1);
+	}
+	else
+	{
+		v6 = 15i64;
+		*(__int64*)a1 = *v3;
+	}
+	a1[2] = v5;
+	result = a1;
+	a1[3] = v6;
+	return result;
+
+	//return *(__int64*)(a1 + 16) + 56i64;
+}
+
+
+
+
+void AnnexCountry(int tag) {
+
+
+	//Disgusting HackCode
+
+
 	int D2H4DJESOA7CJ = 251367161;
 	if (D2H4DJESOA7CJ > 251367154)
 		D2H4DJESOA7CJ = 251367128;
@@ -184,7 +614,7 @@ __forceinline void SMKOZGZ070P8()
 	else if (DRXHCRLWNISB8 <= 251367160)
 		DRXHCRLWNISB8++;
 	else
-		DRXHCRLWNISB8 = (251367134 / 251367163);
+		DRXHCRLWNISB8 = (tag / 251367163);
 	int DNQ0H7PF1G1FA = 251367170;
 	if (DNQ0H7PF1G1FA > 251367126)
 		DNQ0H7PF1G1FA = 251367154;
@@ -250,365 +680,7 @@ __forceinline void SMKOZGZ070P8()
 		DJMPPX18D4KX6 = false;
 }
 
-
-
-
-typedef bool(__fastcall* CSessionPost)(void* pThis, CCommand* pCommand, bool ForceSend);
-CSessionPost CSessionPostHook;
-CSessionPost CSessionPostTramp;
-
-typedef CAddPlayerCommand* (__fastcall* GetCAddPlayerCommand)(void* pThis, CString* User, CString* Name, DWORD* unknown, int nMachineId, bool bHotjoin, __int64 a7);
-GetCAddPlayerCommand CAddPlayerCommandHook;
-GetCAddPlayerCommand CAddPlayerCommandTramp;
-
-typedef CStartGameCommand* (__fastcall* GetCStartGameCommand)(void* pThis);
-GetCStartGameCommand CStartGameCommandFunc;
-
-typedef CRemovePlayerCommand* (*GetCRemovePlayerCommand)(void* pThis, int nMachineId, int eReason, long long a4);
-GetCRemovePlayerCommand CRemovePlayerCommandHook;
-GetCRemovePlayerCommand CRemovePlayerCommandTramp;
-
-typedef __int64(__fastcall* CGameStateSetPlayer)(void* pThis, int* Tag);
-CGameStateSetPlayer CGameStateSetPlayerHook;
-CGameStateSetPlayer CGameStateSetPlayerTramp;
-
-
-typedef CNameChange* (__fastcall* GetCNameChangeCommand)(void* pThis, CString* name);
-GetCNameChangeCommand CNameChangeFunc;
-GetCNameChangeCommand CNameChangeTramp;
-
-typedef CChatMessage* (__fastcall* GetCChatMessage)(void* pThis, __int64 a2, __int64 Message);
-GetCChatMessage CChatMessageHook;
-GetCChatMessage CChatMessageTramp;
-
-typedef CSetDLCsCommand* (__fastcall* GetCSetDLCsCommand)(void* pThis, unsigned int nDLCs);
-GetCSetDLCsCommand CSetDLCsCommandFunc;
-GetCSetDLCsCommand CSetDLCsTramp;
-
-typedef CCreateEquipmentVariant* (__fastcall* GetCCreateEquipmentVariant)(void* pThis, __int64 a2, __int64 a3, int a4, __int64* a5, _int64* a6, char a7);
-GetCCreateEquipmentVariant CCreateEquipmentFunc;
-GetCCreateEquipmentVariant CCreateEquipmentTramp;
-
-typedef CPauseGameCommand* (__fastcall* GetCPauseGameCommand)(void* pthis, __int64 a2, char a3);
-GetCPauseGameCommand CPauseGameFunc;
-
-typedef CAiEnableCommand* (__fastcall* GetEnableAI)(void* pThis, int* tag, int toggled);
-GetEnableAI AIEnableFunc;
-
-typedef CChatLeaveFake* (_fastcall* GetCChatLeaveFake)(void* pThis, int eReason);
-GetCChatLeaveFake ChatLeaveFunc;
-
-typedef LPVOID(__fastcall* GetCCommand)(__int64 a1);
-GetCCommand GetCCommandFunc;
-
-
-
-// For other langauges
-std::string lCheatTitle = "";
-std::string lSteamName = "";
-std::string lJoinAsGhost = "";
-std::string lMLH = "";
-std::string lXP = "";
-std::string lCrasher = "";
-std::string lCrasherText = "";
-std::string lFunctionCallText = "";
-std::string lFakeKick = "";
-std::string lStartGame = "";
-std::string lDisableDLCs = "";
-std::string lMemAddresses = "";
-std::string lFOW = "";
-std::string lAllowTraits = "";
-std::string lDBG = "";
-std::string lTagSwitchText = "";
-std::string lTagSwitch = "";
-std::string lReset = "";
-std::string lCredits = "";
-
-
-int FakeM = 1;
-bool FakeSpammer = false;
-
-
-bool Debug = false;
-bool XP0 = false;
-//ChatMessage
-__int64 pCMessage = NULL;
-
-//SessionPost
-void* pCSession = nullptr;
-
-//AddPlayerCommand
-void* pCAddPlayer = nullptr;
-DWORD* dT;
-int dM;
-__int64 dP;
-CString* dN;
-CString* dNN;
-bool bMaxNameSize = false;
-bool bJoinAsGhost = false;
-int iMyMachineID;
-int iMachineIDFake = 50;
-__int64 iParadoxSocialID = 0;
-CString* empty = new CString;
-bool lala = false;
-
-//RemovePlayerCommand
-void* pCRemovePlayer = nullptr;
-ERemovalReason dReason;
-int RMID;
-int dUnknown;
-
-//GameSetState
-void* pCGameState = nullptr;
-
-//Langauge
-bool lEnglish = true;
-bool lRussian = false;
-bool HasNotChanged = false;
-
-//ImGui
-bool bMenuOpen = true;
-bool bCE = false;
-bool bCrasher = false;
-bool bXP = false;
-bool CheatLobbyEnabled = false;
-bool bInfinitePaused = false;
-int KeyArray[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
-char TagBuffer[8];
-char MessageBuffer[256];
-
-//Hook
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-Present oPresent;
-HWND window = NULL;
-WNDPROC oWndProc;
-ID3D11Device* pDevice = NULL;
-ID3D11DeviceContext* pContext = NULL;
-ID3D11RenderTargetView* mainRenderTargetView;
-uintptr_t GameBase = (uintptr_t)GetModuleHandleA("hoi4.exe");
-
-//Misc (Unused)
-bool bFakePname = false;
-bool bEnabletdebug = false;
-
-
-void printm(std::string str)
-{
-	FILE* fDummy;
-	freopen_s(&fDummy, "CONOUT$", "w", stdout);
-
-	std::cout << "[SilverHook] " << str << std::endl;
-}
-
-//Cheats
-void PatchMemory(uintptr_t address, unsigned char* patch, DWORD size)
-{
-	DWORD oldProtect;
-	VirtualProtect((LPVOID)address, size, PAGE_EXECUTE_READWRITE, &oldProtect);
-	memcpy((LPVOID)address, patch, size);
-	VirtualProtect((LPVOID)address, size, oldProtect, &oldProtect);
-}
-
-
-void MultiplayerLobbyHack()
-{
-
-	uintptr_t address = GameBase + 0x185CD2F;
-
-	unsigned char patch[] = { 0x74, 0x0F, 0x83, 0xFA, 0x01, 0x00 }; 
-
-	void* MLHmem = VirtualAlloc(nullptr, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	if (MLHmem != nullptr)
-	{
-		DWORD relativeOffset = (GameBase + 0x185CD40) - (address + sizeof(patch));
-		memcpy(MLHmem, patch, sizeof(patch));
-		*(BYTE*)((uintptr_t)MLHmem) = 0x0F;
-		*(BYTE*)((uintptr_t)MLHmem + 1) = 0x83;
-		*(DWORD*)((uintptr_t)MLHmem + 2) = relativeOffset;
-		PatchMemory(address, (unsigned char*)MLHmem, sizeof(patch));
-		VirtualFree(MLHmem, 0, MEM_RELEASE);
-	}
-
-}
-
-
-
-void UpgradeLevelLimiter() {
-
-	uintptr_t addr = GameBase + 0x1B1C1E0;
-
-	unsigned char newValue = 0x99;
-
-	unsigned char newCode[] = {
-		0x41, 0xC7, 0x85, 0x0C, 0x01, 0x00, 0x00, newValue, 0x00,0x00, 0x00,  // mov [r13+0000010C], newValue
-		  
-		0x90, 0x90, 0x90, 0x90   // nop 2 (two NOP instructions)
-	};
-
 	
-	PatchMemory(addr, newCode, sizeof(newCode));
-	//XPCostMultiplayer();
-
-}
-
-void XPCostMultiplier() {
-
-	uintptr_t addr = GameBase + 0x1B1C274;
-
-	
-	void* newMem = VirtualAlloc(NULL, 1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	
-	unsigned char newCode[] = {
-		0xB9, 0xF4, 0x01, 0x00, 0x00,         // mov ecx, 500 (500 in hex is 0x01F4, little-endian)
-		0x89, 0x8F, 0xD0, 0x09, 0x00, 0x00,  // mov [rdi+000009D0], ecx
-		0xE9, 0x6D, 0xC2, 0x7E, 0xFE          // jmp return 
-	};
-
-
-	PatchMemory((uintptr_t)newMem, newCode, sizeof(newCode));
-
-	unsigned char jmpToNewMem[] = {
-		0xE9, 0x87, 0x3D, 0x81, 0x01,  // jmp newMem
-		0x90, 0x90, 0x90               // NOP x3
-	};
-
-	PatchMemory(addr, jmpToNewMem, sizeof(jmpToNewMem));
-}
-
-
-
-/*	uintptr_t addr = GameBase + 0x1B1C274;
-	unsigned char bytesToPatch[] = { 0x8B, 0x08, 0x89, 0x8F, 0xD0, 0x09, 0x00, 0x00 };
-
-	unsigned char newCode[] = { 
-		0xB9, 0xF4, 0x01, 0x00, 0x00,         
-		0x89, 0x8F, 0xD0, 0x09, 0x00, 0x00, 
-		/*0x90, 0x90, 0x90,
-		0x48, 0x83, 0xC4, 0x30,
-		0x41, 0x5F*/
-
-	//};
-
-	//PatchMemory(addr, newCode, sizeof(newCode)); 
-	
-
-
-
-
-template <typename T>
-T ReadMemory(uintptr_t address)
-{
-	return *reinterpret_cast<T*>(address);
-}
-
-uintptr_t OffsetCalculator(uintptr_t baseAddress, const std::vector<uintptr_t>& offsets)
-{
-	uintptr_t address = baseAddress;
-	for (uintptr_t offset : offsets)
-	{
-		address = ReadMemory<uintptr_t>(address);
-		address += offset;
-	}
-	return address;
-}
-
-
-
-
-void FreezeHost() {
-
-}
-
-
-/*void printm(std::string str)
-{
-	FILE* fDummy;
-	freopen_s(&fDummy, "CONOUT$", "w", stdout);
-
-	std::cout << "[SilverHook] " << str << std::endl;
-}*/
-
-
-void ChangeIntAddressValue(uintptr_t bAddr, uintptr_t bOff, int Tag)
-{
-
-	uintptr_t baseAddress = bAddr; 
-	
-	std::vector<uintptr_t> offsets = { bOff };
-	
-	uintptr_t finalAddress = OffsetCalculator(GameBase + baseAddress, offsets);
-
-	DWORD* pValue = reinterpret_cast<DWORD*>(finalAddress);
-	DWORD oldProtect;
-
-	(VirtualProtect(pValue, sizeof(DWORD), PAGE_EXECUTE_READWRITE, &oldProtect));
-
-	*pValue = Tag;
-
-	VirtualProtect(pValue, sizeof(DWORD), oldProtect, &oldProtect);
-
-}
-
-void ChangeByteAddressValue(uintptr_t addr)
-{
-	uintptr_t address = GameBase + addr; 
-	BYTE* pValue = (BYTE*)address;
-	DWORD oldProtect;
-
-
-	VirtualProtect(pValue, sizeof(BYTE), PAGE_EXECUTE_READWRITE, &oldProtect);
-	
-	if (*pValue == 1)
-	{
-		*pValue = 0;
-	}
-	else
-	{
-		*pValue = 1;
-	}
-	
-	VirtualProtect(pValue, sizeof(BYTE), oldProtect, &oldProtect);
-}
-
-
-//IngameFunctions
-void ToggleDLC(int _nDLC) {
-	CSetDLCsCommand* SetDLCs = (CSetDLCsCommand*)GetCCommandFunc(48);
-	SetDLCs = CSetDLCsCommandFunc(SetDLCs, _nDLC);
-	CSessionPostTramp(pCSession, SetDLCs, true);
-}
-
-void FakePlayer(int _MachineID) {
-	//do dM for fakekick
-	//do dM + 1 for addfakeplayer
-
-	DWORD* tt = dT; // unknown
-	int tM = _MachineID; //machine ID
-	__int64 tP = dP; //paradox social ID
-	CString* tN = dN; //Steam Name
-	CString* tNN = dNN; // HOI4 Name
-
-	CAddPlayerCommand* FakeKick = (CAddPlayerCommand*)GetCCommandFunc(168);
-	FakeKick = CAddPlayerCommandTramp(FakeKick, tN, tNN, tt, tM, false, tP);
-	CSessionPostTramp(pCSession, FakeKick, true);
-}
-
-void StartGameFunc() {
-	CStartGameCommand* StartGame = (CStartGameCommand*)GetCCommandFunc(41);
-
-	StartGame = CStartGameCommandFunc((StartGame));
-	CSessionPostTramp(pCSession, StartGame, true);
-}
-
-void RemovalReason(ERemovalReason e) {
-	//Only host can remove themselves? (possibly machine ID
-	CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(41);
-	RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, RMID, e, dUnknown);
-	CSessionPostTramp(pCSession, RemovePlayer, true);
-}
-
-
-
 
 
 void InitImGui()
@@ -622,36 +694,8 @@ void InitImGui()
 	ImGui_ImplWin32_Init(window);
 	ImGui_ImplDX11_Init(pDevice, pContext);
 	
-	ImVec4 NormalColor = ImVec4(0.047f, 0.047f, 0.047f, 1.0f);
-	ImVec4 HoverColor = ImVec4(0.066f, 0.066f, 0.066f, 1.0f);
-	ImVec4 ActiveColor = ImVec4(0.076f, 0.076f, 0.076f, 1.0f);
-	ImVec4 BackgroundColor = ImVec4(0.08f, 0.08f, 0.08f, 1.0f);
-	ImVec4 PureBlackColor = ImVec4(0.01f, 0.01f, 0.01f, 1.0f);
-	ImVec4 WhiteColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	DefaultImGui();
 
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.Colors[ImGuiCol_Button] = NormalColor;  // Normal Colors
-	style.Colors[ImGuiCol_FrameBg] = NormalColor;
-	style.Colors[ImGuiCol_ResizeGrip] = NormalColor;
-	style.Colors[ImGuiCol_Separator] = NormalColor;
-
-	style.Colors[ImGuiCol_ButtonHovered] = HoverColor; //Hovered Colors
-	style.Colors[ImGuiCol_ResizeGripHovered] = HoverColor;
-	style.Colors[ImGuiCol_FrameBgHovered] = HoverColor;
-	style.Colors[ImGuiCol_SeparatorHovered] = HoverColor;
-
-	style.Colors[ImGuiCol_ButtonActive] = ActiveColor; // Active Colors
-	style.Colors[ImGuiCol_ResizeGripActive] = ActiveColor;
-	style.Colors[ImGuiCol_SeparatorActive] = ActiveColor;
-	style.Colors[ImGuiCol_FrameBgActive] = ActiveColor;
-
-	style.Colors[ImGuiCol_WindowBg] = BackgroundColor; // Background
-
-	style.Colors[ImGuiCol_TitleBg] = PureBlackColor; // Title
-	style.Colors[ImGuiCol_TitleBgCollapsed] = PureBlackColor;
-	style.Colors[ImGuiCol_TitleBgActive] = PureBlackColor;
-
-	style.Colors[ImGuiCol_CheckMark] = WhiteColor; // Checkmark
 }
 
 LRESULT __stdcall WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -660,25 +704,6 @@ LRESULT __stdcall WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		return true;
 
 	return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
-}
-
-void* __fastcall sizeFinder(size_t Size) {
-	size_t i;
-	void* result;
-
-	for (i = Size; ; Size = i) {
-		result = malloc(Size);
-		if (result) {
-			break;
-		}
-		if (!_callnewh(i)) {
-			if (i != -1i64) {
-				break;
-			}
-			break;
-		}
-	}
-	return result;
 }
 
 
@@ -711,7 +736,7 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 	if (GetAsyncKeyState(VK_INSERT) & 1)
 		bMenuOpen = !bMenuOpen;
 
-	if (GetAsyncKeyState(VK_F9) & 1)
+	if (GetAsyncKeyState(VK_HOME) & 1)
 		StartGameFunc();
 
 	if (bMenuOpen)
@@ -732,14 +757,6 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			io.MouseClicked[0] = false;
 		}
 
-		/*for (int i : KeyArray)
-		{
-			if (GetAsyncKeyState(i) & 1)
-			{
-				io.AddInputCharacter(i);
-			}
-		}*/
-
 
 
 
@@ -747,86 +764,352 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-		ImGui::Begin("SilverHook", &bMenuOpen);
-
+		ImGui::Begin("Dankus Admin Menu", &bMenuOpen);
+		
 		ImGui::Text("Language");
 		if (ImGui::Checkbox("English", &lEnglish))
 		{
 			if (lEnglish)
 				lRussian = false;
 			HasNotChanged = false;
+
+			
+		
 		};
 		ImGui::SameLine();
-		if (ImGui::Checkbox(u8"Русский", &lRussian))
+
+		// NOT THIS
+		if (ImGui::Checkbox(u8"Russian (Unfinished)", &lRussian))
 		{
 			if (lRussian)
 				lEnglish = false;
 			HasNotChanged = false;
+			
 		};
+
+		ImGui::Text("Menus");
+		if (ImGui::Checkbox(u8"Lobby Menu", &bLobbyMenu))
+		{
+			bLobbyMenu = true;
+			bGameMenu = false;
+			bSettingsMenu = false;
+		}; 
+		
+		ImGui::SameLine();
+		if (ImGui::Checkbox(u8"Ingame Menu", &bGameMenu))
+		{
+			bLobbyMenu = false;
+			bGameMenu = true;
+			bSettingsMenu = false;
+		}; 
+		if (ImGui::Checkbox(u8"Debug Menu", &bSettingsMenu))
+		{
+			bLobbyMenu = false;
+			bGameMenu = false;
+			bSettingsMenu = true;
+		}; 
+
+
 
 		//English
 		if (lEnglish && !HasNotChanged) {
 			HasNotChanged = true;
 
-			lCheatTitle = u8"Cheats";
-			lSteamName = u8"Spoof Steam Name";
-			lJoinAsGhost = u8"Join as Ghost";
-			lMLH = u8"Multiplayer Lobby Hack";
-			lXP = u8"1xp and 99 max lvl";
-			lCrasher = u8"Crasher";
-			lCrasherText = u8"Only use crasher when\ngame has finished loading.";
-			lFunctionCallText = u8"Function Calls";
-			lFakeKick = u8"Fake Kick";
+			//doing u8 first means it can read russian text
 			lStartGame = u8"Start Game";
-			lDisableDLCs = u8"Disable DLCs";
-			lMemAddresses = u8"Mem Addresses";
-			lFOW = u8"FOW";
-			lAllowTraits = u8"AllowTraits";
-			lDBG = u8"Debug";
-			lTagSwitchText = u8"Tag Switching";
-			lTagSwitch = u8"Tag Switch";
-			lReset = u8"Reset";
-			lCredits = u8"Credits\nCreator: SilverXK\nTranslator: voiddd";
 		}
 
 		//Russian
 		if (lRussian && !HasNotChanged) {
 			HasNotChanged = true;
-
-			lCheatTitle = u8"Читы";
-			lSteamName = u8"Скрыть стим-ник";
-			lJoinAsGhost = u8"Невидимка";
-			lMLH = u8"Лобби-хак";
-			lXP = u8"1xp and 99 max lvl";
-			lCrasher = u8"Крашнуть игру (всем)";
-			lCrasherText = u8"Используйте 'Crasher'\nтолько после загрузки игры.";
-			lFunctionCallText = u8"Вызовы функций";
-			lFakeKick = u8"Фейк-самокик";
-			lStartGame = u8"Запустить раунд";
-			lDisableDLCs = u8"Откл. Длс";
-			lMemAddresses = u8"Адреса памяти";
-			lFOW = u8"фов";
-			lAllowTraits = u8"Ген-Апгрейд";
-			lDBG = u8"Отладка";
-			lTagSwitchText = u8"Сменить страну";
-			lTagSwitch = u8"Сменить";
-			lReset = u8"Очистить";
-			lCredits = u8"Заслуги\nАвторы: SilverXK\nПеревод: voiddd";
+			lStartGame = u8"Начать игру";
 		}
+		if (bLobbyMenu)
+		{
+			ImGui::Text("Cheats");
+			ImGui::Checkbox("Spoof Steam Name", &bSpoofSteam);
+			ImGui::Checkbox("Join as Ghost", &bJoinAsGhost);
+			ImGui::Checkbox("Multiplayer Lobby Hack", &bCE);	
+			ImGui::Checkbox("FakeSpammer", &FakeSpammer);
+			ImGui::Text("Function Calls");
+			ImGui::Text("");
+			ImGui::Columns(2);
+			//Must do c_str() to turn string into char array
+			if (ImGui::Button(lStartGame.c_str(), ImVec2(140, 28)) && pCSession != nullptr)
+			{
 
-		ImGui::Text(lCheatTitle.c_str());
-		ImGui::Checkbox(lSteamName.c_str(), &bMaxNameSize);
-		ImGui::Checkbox(lJoinAsGhost.c_str(), &bJoinAsGhost);
-		//ImGui::Checkbox("Debug", &Debug);
-		ImGui::Checkbox("FakeSpammer", &FakeSpammer);
-		ImGui::Checkbox(lMLH.c_str(), &bCE);
-		ImGui::Checkbox(lXP.c_str(), &bXP);
-		ImGui::Checkbox(lCrasher.c_str(), &bCrasher);
-		ImGui::Text(lCrasherText.c_str());
+				StartGameFunc();
+
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Reset Fake MachineID", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+
+				FakeM = 1;
+
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Add Fake Player", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+				DWORD* tt = dUnknown;
+				__int64 tP = dPdx;
+				CString* tN = dUser;
+				CString* tNN = dHname;
+				CString* empty = new CString;
+
+				CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
+
+				FakeM2++;
+
+				tN = (CString*)memcpy(tN, "SilverHook", 10);
+				tNN = (CString*)memcpy(tNN, "RSilverXK 4on YT" ,18);
+				AddFake = CAddPlayerCommandTramp(AddFake, tN, tNN, tt, FakeM2, false, tP);
+
+
+				CSessionPostTramp(pCSession, AddFake, true);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Become Ghost", ImVec2(140, 28)) && pCSession != nullptr) {
+				/*DWORD* tt = dUnknown;
+				__int64 tP = dPdx;
+				CString* tN = dUser;
+				CString* tNN = dHname;
+
+				CAddPlayerCommand* FakeKick = (CAddPlayerCommand*)GetCCommandFunc(200);
+				FakeKick = CAddPlayerCommandTramp(FakeKick, tN, tNN, tt, tM, false, tP);
+				CSessionPostTramp(pCSession, FakeKick, true);*/
+
+				CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(200);
+				RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, dMachine, 0, dRUnknown);
+				CSessionPostTramp(pCSession, RemovePlayer, true);
+
+				//THIS ONE IS ANNOYING, PRETTY SURE THE COMMENTED OUT FUNCTION WORKS BETTER!
+				
+			}
+			ImGui::Columns(1);
+			ImGui::Text("");
+			ImGui::Text("Credits: John Paradox");
+		}
+		if (bGameMenu) {
+			ImGui::Text("Cheats");
+			ImGui::Checkbox("NoXPCost + 99 Max Level (Testing)", &bXP);
+			ImGui::Checkbox("Crasher", &bCrasher);
+			ImGui::Checkbox("Antiban", &bRefuseConnect);
+			ImGui::Text("Only use crasher when\ngame has finished loading.");
+			ImGui::Text("Function Calls");
+			ImGui::Text("");
+			ImGui::Columns(2);
+			if (ImGui::Button("Enable AI on all", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+				int i = 0;
+				do {
+					int* TagPtr = &i;
+					CAiEnableCommand* EnableAI = (CAiEnableCommand*)GetCCommandFunc(56);
+					EnableAI = AIEnableFunc(EnableAI, TagPtr, 2);
+					CSessionPostTramp(pCSession, EnableAI, 1);
+					i++;
+				} while (i <= 100);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Disable AI on all", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+				int i = 0;
+				do {
+					int* TagPtr = &i;
+					CAiEnableCommand* EnableAI = (CAiEnableCommand*)GetCCommandFunc(56);
+					EnableAI = AIEnableFunc(EnableAI, TagPtr, 0);
+					CSessionPostTramp(pCSession, EnableAI, 1);
+					i++;
+				} while (i <= 100);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Infinite Pause", ImVec2(140, 28)) && pCSession != nullptr) {
+				CString* empty = new CString;
+				CPauseGameCommand* UnpauseGame = (CPauseGameCommand*)GetCCommandFunc(88);
+				UnpauseGame = CPauseGameFunc(UnpauseGame, (__int64)empty, 1);
+				CSessionPostTramp(pCSession, UnpauseGame, true);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Ghost Pause", ImVec2(140, 28)) && pCSession != nullptr) {
+				CString* empty = new CString;
+				CPauseGameCommand* UnpauseGame = (CPauseGameCommand*)GetCCommandFunc(88);
+				UnpauseGame = CPauseGameFunc(UnpauseGame, (__int64)empty, 0);
+				CSessionPostTramp(pCSession, UnpauseGame, true);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Decrease Speed", ImVec2(140, 28)) && pCSession != nullptr) {
+				CGameSpeed* DecreaseSpeed = (CGameSpeed*)GetCCommandFunc(80);
+				DecreaseSpeed = DecreaseSpeedFunc(DecreaseSpeed);
+				CSessionPostTramp(pCSession, DecreaseSpeed, true);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Increase Speed", ImVec2(140, 28)) && pCSession != nullptr) {
+				CGameSpeed* IncreaseSpeed = (CGameSpeed*)GetCCommandFunc(48);
+				IncreaseSpeed = IncreaseSpeedFunc(IncreaseSpeed);
+				CSessionPostTramp(pCSession, IncreaseSpeed, true);
+			}
+			ImGui::Columns(1);
+			ImGui::Text("");
+			ImGui::Text("Mem Addresses");
+			ImGui::Columns(2);
+
+			if (ImGui::Button("FOW", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+				ChangeByteAddressValue(0x2AB9DDA);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("AllowTraits", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+				ChangeByteAddressValue(0x2AB9DB8);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Debug", ImVec2(140, 28)) && pCSession != nullptr)
+			{
+				ChangeByteAddressValue(0x2C96BEC);
+			}
+
+			ImGui::Columns(1);
+			ImGui::Text("");
+			ImGui::Text("Country Tag:");
+			ImGui::SetNextItemWidth(70.f);
+			ImGui::InputText("", TagBuffer, IM_ARRAYSIZE(TagBuffer));
+			ImGui::SameLine();
+
+			if (ImGui::Button("Enable AI") && pCSession != nullptr)
+			{
+				std::string sTagBuffer = TagBuffer;
+				char* endptr;
+				int a1 = std::strtol(TagBuffer, &endptr, 10);
+
+				if (sTagBuffer.length() > 0)
+				{
+					int* TagPtr = &a1;
+					CAiEnableCommand* EnableAI = (CAiEnableCommand*)GetCCommandFunc(56);
+					EnableAI = AIEnableFunc(EnableAI, TagPtr, 2);
+					CSessionPostTramp(pCSession, EnableAI, 1);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Disable AI") && pCSession != nullptr)
+			{
+				std::string sTagBuffer = TagBuffer;
+				char* endptr;
+				int a1 = std::strtol(TagBuffer, &endptr, 10);
+				if (sTagBuffer.length() > 0)
+				{
+
+					int* TagPtr = &a1;
+					CAiEnableCommand* DisableAI = (CAiEnableCommand*)GetCCommandFunc(56);
+					DisableAI = AIEnableFunc(DisableAI, TagPtr, 0);
+					CSessionPostTramp(pCSession, DisableAI, 1);
+				}
+			}
+			if (ImGui::Button("Tagswitch") && pCSession != nullptr)
+			{
+				std::string sTagBuffer = TagBuffer;
+
+				if (sTagBuffer.length() > 0)
+				{
+					int Tag = std::stoi(sTagBuffer);
+					ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
+				}
+			}
+			if (ImGui::Button("Annex") && pCSession != nullptr)
+			{
+				std::string sTagBuffer = TagBuffer;
+
+				if (sTagBuffer.length() > 0)
+				{
+					int Tag = std::stoi(sTagBuffer);
+					AnnexCountry(Tag);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reset"))
+			{
+				memset(TagBuffer, 0, sizeof(TagBuffer));
+			}
+			ImGui::Text("");
+			ImGui::Text("Credits: John Paradox");
+		}
+		if (bSettingsMenu) {
+			ImGui::Text("");
+			ImGui::Checkbox("Debug", &Debug);
+			ImGui::Text("Enabling debug WILL bring up a console\n as a seperate window. \nDO NOT CLOSE IT!");
+			ImGui::Text("Boost Amount:");
+			ImGui::SetNextItemWidth(70.f);
+			ImGui::InputText("", TagBuffer, IM_ARRAYSIZE(TagBuffer));
+			ImGui::SameLine();
+			if (ImGui::Button("Boost") && pCSession != nullptr)
+			{
+				std::string sTagBuffer = TagBuffer;
+				boost = std::stoi(TagBuffer);
+
+				if (sTagBuffer.length() > 0)
+				{
+					EmptyTest* Strength = (EmptyTest*)GetCCommandFunc(88);
+					Strength = GCDMF(Strength, CountryTag, boost);
+					CSessionPostTramp(pCSession, Strength, true);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("200k"))
+			{
+				boost = 200000;
+				
+				EmptyTest* Strength = (EmptyTest*)GetCCommandFunc(88);
+				
+				Strength = GCDMF(Strength, CountryTag, boost);
+				
+				CSessionPostTramp(pCSession, Strength, true);
+
+				memset(TagBuffer, 0, sizeof(TagBuffer));
+			}
+			if (ImGui::Button("speed"))
+			{
+				std::string sTagBuffer = TagBuffer;
+				boost = std::stoi(TagBuffer);
+
+				if (sTagBuffer.length() > 0)
+				{
+					CSetSpeed* Speed = (CSetSpeed*)GetCCommandFunc(56);
+					Speed = SetSpeedFunc(Speed, boost);
+					CSessionPostTramp(pCSession, Speed, true);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reset"))
+			{
+				boost = 0;
+				EmptyTest* Strength = (EmptyTest*)GetCCommandFunc(88);
+				Strength = GCDMF(Strength, CountryTag, boost);
+				CSessionPostTramp(pCSession, Strength, true);
+				memset(TagBuffer, 0, sizeof(TagBuffer));
+			}
+			ImGui::Text("CountryTag: ");
+			ImGui::SameLine();
+			std::string tag = std::to_string(CountryTag);
+			ImGui::Text(tag.c_str());
+			ImGui::SameLine();
+			ImGui::Text("");
+			ImGui::Text("Credits: John Paradox");
+		}
+		
+		
+
+
+
+		if (Debug) {
+			if (!AllocatedConsole) {
+				AllocConsole();
+				AllocatedConsole = true;
+			}
+		}
+		
+		
 		if (bCrasher) {
-			ToggleDLC(0);
+			Crasher(0);
 		}
-
 		if (bCE) {
 			MultiplayerLobbyHack();
 		}
@@ -834,198 +1117,21 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			UpgradeLevelLimiter();
 		}
 		if (FakeSpammer) {
-			DWORD* tt = dT;
-			__int64 tP = dP;
-			CString* tN = dN;
-			CString* tNN = dNN;
+			DWORD* a3 = dUnknown;
+			__int64 a4 = dPdx;
+			CString* a1 = dUser;
+			CString* a2 = dHname;
 			CString* empty = new CString;
-			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
+			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(112);
 			FakeM++;
-			tN = (CString*)memcpy(tN, "Silver", sizeof(dN));
-			tNN = (CString*)memcpy(tNN, "FUWGbot", sizeof(dNN));
-			AddFake = CAddPlayerCommandTramp(AddFake, tN, tNN, tt, FakeM, false, tP);
+			(CString*)memcpy(a1, "SilverXK", 8);
+			(CString*)memcpy(a2, "RFUWG", 8);
+			AddFake = CAddPlayerCommandTramp(AddFake, a1, a2, a3, FakeM, false, a4);
 			CSessionPostTramp(pCSession, AddFake, true);
 		}
 
-		ImGui::Text("");
-		ImGui::Text(lFunctionCallText.c_str());
-		ImGui::Columns(2);
-		/*if (ImGui::Button("Fake Leave", ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			CChatLeaveFake* ChatLeave = (CChatLeaveFake*)GetCCommandFunc(56);
 
-			ChatLeave = ChatLeaveFunc(ChatLeave, 0);
-			CSessionPostTramp(pCSession, ChatLeave, true);
-
-
-		}
-		ImGui::NextColumn();*/
-		if (ImGui::Button(lStartGame.c_str(), ImVec2(140, 28)) && pCSession != nullptr)
-		{
-
-			StartGameFunc();
-
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button("Reset Fake MachineID", ImVec2(140, 28)) && pCSession != nullptr)
-		{
-
-			FakeM = 1;
-
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button("Add Fake Player", ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			DWORD* tt = dT;
-			__int64 tP = dP;
-			CString* tN = dN;
-			CString* tNN = dNN;
-			CString* empty = new CString;
-
-			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
-
-			FakeM++;
-
-			if (bFakePname)
-			{
-				//tN = empty;
-				tNN = empty;
-				
-			}
-			tN = (CString*)memcpy(tN, "Silver", sizeof(dN));
-			tNN = (CString*)memcpy(tNN, "FUWGbot", sizeof(dNN));
-			AddFake = CAddPlayerCommandTramp(AddFake, tN, tNN, tt, FakeM, false, tP);
-
-
-			CSessionPostTramp(pCSession, AddFake, true);
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button(lDisableDLCs.c_str(), ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			ToggleDLC(0);
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button("Enable AI on all", ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			int i = 1;
-			do {
-				int* TagPtr = &i;
-				
-				CAiEnableCommand* EnableAI = (CAiEnableCommand*)GetCCommandFunc(56);
-				EnableAI = AIEnableFunc(EnableAI, TagPtr, 2);
-				CSessionPostTramp(pCSession, EnableAI, 1);
-				i++;
-			} while (i <= 100);
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button("Become Ghost", ImVec2(140, 28)) && pCSession != nullptr) {
-			DWORD* tt = dT; // unknown
-			int tM = dM; //machine ID
-			__int64 tP = dP; //paradox social ID
-			CString* tN = dN; //Steam Name
-			CString* tNN = dNN; // HOI4 Name
-
-			CAddPlayerCommand* FakeKick = (CAddPlayerCommand*)GetCCommandFunc(200);
-			FakeKick = CAddPlayerCommandTramp(FakeKick, tN, tNN, tt, tM, false, tP);
-			CSessionPostTramp(pCSession, FakeKick, true);
-
-			/*CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(112);
-			RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, RMID, 3, dUnknown);
-			CSessionPostTramp(pCSession, RemovePlayer, true);*/
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button("Infinite Pause", ImVec2(140, 28)) && pCSession != nullptr) {
-			CString* empty = new CString;
-			CPauseGameCommand* UnpauseGame = (CPauseGameCommand*)GetCCommandFunc(88);
-			UnpauseGame = CPauseGameFunc(UnpauseGame, (__int64)empty, 1);
-			CSessionPostTramp(pCSession, UnpauseGame, true);
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button("Ghost Pause", ImVec2(140, 28)) && pCSession != nullptr) {
-			CString* empty = new CString;
-			CPauseGameCommand* UnpauseGame = (CPauseGameCommand*)GetCCommandFunc(88);
-			UnpauseGame = CPauseGameFunc(UnpauseGame, (__int64)empty, 0);
-			CSessionPostTramp(pCSession, UnpauseGame, true);
-		}
-		ImGui::Columns(1);
-		ImGui::Text("");
-		ImGui::Text(lMemAddresses.c_str());
-		ImGui::Columns(2);
-
-		if (ImGui::Button(lFOW.c_str(), ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			ChangeByteAddressValue(0x2AB9DDA);
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button(lAllowTraits.c_str(), ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			ChangeByteAddressValue(0x2AB9DB8);
-		}
-		ImGui::NextColumn();
-		if (ImGui::Button(lDBG.c_str(), ImVec2(140, 28)) && pCSession != nullptr)
-		{
-			ChangeByteAddressValue(0x2C96BEC);
-		}
-
-		ImGui::Columns(1);
-		ImGui::Text("");
-		ImGui::Text("Country Tag:");
-		ImGui::SetNextItemWidth(70.f);
-		ImGui::InputText("", TagBuffer, IM_ARRAYSIZE(TagBuffer));
-		ImGui::SameLine();
-
-		if (ImGui::Button("Enable AI") && pCSession != nullptr)
-		{
-			std::string sTagBuffer = TagBuffer;
-			char* endptr;
-			int a1 = std::strtol(TagBuffer, &endptr, 10);
-
-			if (sTagBuffer.length() > 0)
-			{
-				
-				//int Tag = std::stoi(sTagBuffer);
-				int *TagPtr = &a1;
-				//ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
-				CAiEnableCommand* EnableAI = (CAiEnableCommand*)GetCCommandFunc(56);
-				EnableAI = AIEnableFunc(EnableAI, TagPtr, 2);
-				CSessionPostTramp(pCSession, EnableAI, 1);
-			}
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Disable AI") && pCSession != nullptr)
-		{
-			std::string sTagBuffer = TagBuffer;
-			char* endptr;
-			int a1 = std::strtol(TagBuffer, &endptr, 10);
-			if (sTagBuffer.length() > 0)
-			{
-				
-				int* TagPtr = &a1;
-				//ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
-				CAiEnableCommand* DisableAI = (CAiEnableCommand*)GetCCommandFunc(56);
-				DisableAI = AIEnableFunc(DisableAI, TagPtr, 0);
-				CSessionPostTramp(pCSession, DisableAI, 1);
-			}
-		}
-		ImGui::SameLine();
-		if (ImGui::Button(lReset.c_str()))
-		{
-			memset(TagBuffer, 0, sizeof(TagBuffer));
-		}
-		if (ImGui::Button("Tagswitch") && pCSession != nullptr)
-		{
-			std::string sTagBuffer = TagBuffer;
-
-			if (sTagBuffer.length() > 0)
-			{
-				int Tag = std::stoi(sTagBuffer);
-				ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
-			}
-		}
-		ImGui::Text("");
-		ImGui::Text(lCredits.c_str());
 		ImGui::End();
-	
 		ImGui::Render();
 
 		pContext->OMSetRenderTargets(1, &mainRenderTargetView, NULL);
@@ -1034,12 +1140,23 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 	return oPresent(pSwapChain, SyncInterval, Flags);
 }
 
+
+EmptyTest* __fastcall hkAntiBan(void* pThis, char a2) {
+
+	printm("Ban Called");
+
+	if (!bRefuseConnect)
+		return AntiBanTramp(pThis, a2);
+}
+
+
 bool __fastcall hkCSessionPost(void* pThis, CCommand* pCommand, bool ForceSend)
 {
-	//__int64 a1 = (__int64)pCommand;
+	
 	pCSession = pThis;
-
-
+	if (Debug) {
+		printm("CSP Called");
+	}
 	return CSessionPostTramp(pThis, pCommand, ForceSend);
 }
 
@@ -1051,39 +1168,23 @@ CAddPlayerCommand* __fastcall hkCAddPlayerCommand(void* pThis, CString* User, CS
 	iMachineIDFake = 50;
 	iMyMachineID = nMachineId;
 
-	//CString* Ta = new CString("Hi");
-	//*Test = "hi";
-
-	
-
-	if (bMaxNameSize)
+	if (bSpoofSteam)
 	{
-		
 		User = empty;
-		
-
 	}
-	//printm("AddPlayer1");
 
 	if (bJoinAsGhost)
 	{
 		User = empty;
 		Name = empty;
 	}
-
-
-	//printm("AddPlayer5");
+	
 	pCAddPlayer = pThis;
-	dN = User;
-	dNN = Name;
-	dT = unknown;
-	dM = nMachineId;
-	dP = a7;
-
-	if (!lala) {
-		//fM = nMachineId;
-		lala = true;
-	}
+	dUser = User;
+	dHname = Name;
+	dUnknown = unknown;
+	dMachine = nMachineId;
+	dPdx = a7;
 
 	return CAddPlayerCommandTramp(pThis, User, Name, unknown, nMachineId, bHotjoin, a7);
 }
@@ -1091,12 +1192,11 @@ CAddPlayerCommand* __fastcall hkCAddPlayerCommand(void* pThis, CString* User, CS
 CRemovePlayerCommand* __fastcall hkCRemovePlayerCommand(void* pThis, int _machineID, ERemovalReason eReason, long long a4)
 {
 
-
-	pCRemovePlayer = pThis; RMID = _machineID; dReason = eReason; dUnknown = a4;
+	pCRemovePlayer = pThis; RMID = _machineID; dReason = eReason; dRUnknown = a4;
 	
-	
-	
-	//iMyMachineID = machineID;
+	if (Debug) {
+		printm("RPC Called");
+	}
 	return CRemovePlayerCommandTramp(pThis, _machineID, eReason, a4);
 }
 
@@ -1104,38 +1204,88 @@ __int64 __fastcall hkCGameStateSetPlayer(void* pThis, int* Tag)
 {
 
 	pCGameState = pThis;
-
+	if (Debug) {
+		printm("CGSSP Called");
+	}
 	return CGameStateSetPlayerTramp(pThis, Tag);
 }
 
-CChatMessage* __fastcall hkChatMessage(void* pThis, __int64 a2, __int64 Message) {
+/*CChatMessage* __fastcall hkChatMessage(void* pThis, __int64 a2, __int64 Message) {
 
 	pCMessage = a2;
-
-
+	if (Debug) {
+		printm("CM Called");
+	}
 	return CChatMessageTramp(pThis, a2, Message);
-}
+}*/
 
 
-CNameChange* __fastcall hkNameChange(void* pThis, CString* name) {
+/*CNameChange* __fastcall hkNameChange(void* pThis, CString* name) {
+
 
 	if (Debug) {
-		if (pThis == ((__int64*)((__int64*)pCAddPlayer + 48))) {
-			printm((char*)name);
-		}
+		printm("CNC Called");
 	}
-
 	return CNameChangeTramp(pThis, name);
-}
+}*/
 
-CCreateEquipmentVariant* __fastcall hkCCreateEquipment(void* pThis, __int64 a2, __int64 a3, int a4, __int64* a5, _int64* a6, char a7) {
+CCreateEquipmentVariant* __fastcall hkCCreateEquipment(void* pThis, __int64 a2, __int64 a3, int a4, __int64* a5, char a6) {
 
 	if (bXP) {
 		a4 = 0;
 	}
-
-	return CCreateEquipmentTramp(pThis, a2, a3, a4, a5,a6, a7);
+	if (Debug) {
+		printm("CCE Called");
+	}
+	return CCreateEquipmentTramp(pThis, a2, a3, a4, a5, a6);
 }
+
+
+EmptyTest* __fastcall hkCustomDiffM(void* pThis, __int64 Tag, int Boost) {
+	if (Debug) {
+		printm("DiffMultipley");
+		std::string x;
+		//x = std::to_string(a2);
+		printm((char*)Tag);
+		//a3 = boost;
+		x = std::to_string(Boost);
+		printm(x);
+	}
+	CountryTag = Tag;
+
+	return GCDMH(pThis, Tag, Boost);
+}
+EmptyTest* __fastcall hkCustomDiff(void* pThis, int a2) {
+
+	if (Debug) {
+		printm("DiffChange");
+	}
+	return GetCustomH(pThis, a2);
+}
+
+CStartGameCommand* __fastcall hkStartGame(void* pThis) {
+
+	if (Debug) {
+		printm("StartGame Called");
+
+	}
+
+	return CStartGameCommandTramp(pThis);
+}
+
+CCrash* __fastcall hkCrash(void* pThis, unsigned int a1) {
+
+	if (Debug) {
+		printm("Crash Called");
+		std::string x = std::to_string(a1);
+		printm(x);
+	}
+
+
+	return CCrashTramp(pThis, a1);
+}
+
+
 
 void HookFunctions() {
 
@@ -1144,11 +1294,12 @@ void HookFunctions() {
 	MH_EnableHook(CSessionPostHook);
 
 	CAddPlayerCommandHook = GetCAddPlayerCommand(GameBase + 0x1650E80);
-
 	MH_CreateHook(CAddPlayerCommandHook, &hkCAddPlayerCommand, (LPVOID*)&CAddPlayerCommandTramp);
 	MH_EnableHook(CAddPlayerCommandHook);
+	
 
-	CGameStateSetPlayerHook = CGameStateSetPlayer(GameBase + 0x1BCCA0); //0xB8D50 1.7.1 //0x142090 modern 
+
+	CGameStateSetPlayerHook = CGameStateSetPlayer(GameBase + 0x1BCCA0);
 
 	MH_CreateHook(CGameStateSetPlayerHook, &hkCGameStateSetPlayer, (LPVOID*)&CGameStateSetPlayerTramp);
 	MH_EnableHook(CGameStateSetPlayerHook);
@@ -1158,27 +1309,49 @@ void HookFunctions() {
 	MH_CreateHook(CRemovePlayerCommandHook, &hkCRemovePlayerCommand, (LPVOID*)&CRemovePlayerCommandTramp);
 	MH_EnableHook(CRemovePlayerCommandHook);
 
-	CChatMessageHook = GetCChatMessage(GameBase + 0x1E939A0);
-	MH_CreateHook(CChatMessageHook, &hkChatMessage, (LPVOID*)&CChatMessageTramp);
-	MH_EnableHook(CChatMessageHook);
+	//CChatMessageHook = GetCChatMessage(GameBase + 0x1E939A0);
+	//MH_CreateHook(CChatMessageHook, &hkChatMessage, (LPVOID*)&CChatMessageTramp);
+	//MH_EnableHook(CChatMessageHook);
 
-	CCreateEquipmentFunc = GetCCreateEquipmentVariant(GameBase + 0x170C430);
+	CCreateEquipmentFunc = GetCCreateEquipmentVariant(GameBase + 0x170C870);
 	MH_CreateHook(CCreateEquipmentFunc, &hkCCreateEquipment, (LPVOID*)&CCreateEquipmentTramp);
 	MH_EnableHook(CCreateEquipmentFunc);
 
+	AntiBanFunc = GetAntiBan(GameBase + 0x1F97540);
+	MH_CreateHook(AntiBanFunc, &hkAntiBan, (LPVOID*)&AntiBanTramp);
+	MH_EnableHook(AntiBanFunc);
 
 	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x104F70);
-	CSetDLCsCommandFunc = GetCSetDLCsCommand(GameBase + 0x1650FF0);
+	CCrashFunc = GetCCrash(GameBase + 0x1650FF0);
+	MH_CreateHook(CCrashFunc, &hkCrash, (LPVOID*)&CCrashTramp);
+	MH_EnableHook(CCrashFunc);
 
 	CStartGameCommandFunc = GetCStartGameCommand(GameBase + 0x12724F0);
+	MH_CreateHook(CStartGameCommandFunc, &hkStartGame, (LPVOID*)&CStartGameCommandTramp);
+	MH_EnableHook(CStartGameCommandFunc);
 	GetCCommandFunc = GetCCommand(GameBase + 0x2112854);
-	CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x170C430);
+	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x170C430);
 	AIEnableFunc = GetEnableAI(GameBase + 0xBD4EB0);
 	ChatLeaveFunc = GetCChatLeaveFake(GameBase + 0x109AED0);
 	CPauseGameFunc = GetCPauseGameCommand(GameBase + 0xC2EEC0);
 
-	MH_CreateHook(CNameChangeFunc, &hkNameChange, (LPVOID*)&CNameChangeTramp);
-	MH_EnableHook(CNameChangeFunc);
+
+	//Dont be mistaken these are different addresses!
+	IncreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD121F0);
+	DecreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD12120);
+
+	SetSpeedFunc = GetCGameSetSpeed(GameBase + 0xD12240);
+
+	GCDMF = GetCustomDiffM(GameBase + 0x1272280);
+	MH_CreateHook(GCDMF, &hkCustomDiffM, (LPVOID*)&GCDMH);
+	MH_EnableHook(GCDMF);
+
+	GetCustomF = GetCustomDiff(GameBase + 0x12722F0);
+	MH_CreateHook(GetCustomF, &hkCustomDiff, (LPVOID*)&GetCustomH);
+	MH_EnableHook(GetCustomF);
+
+	/*MH_CreateHook(CNameChangeFunc, &hkNameChange, (LPVOID*)&CNameChangeTramp);
+	MH_EnableHook(CNameChangeFunc);*/
 }
 
 DWORD WINAPI MainThread(LPVOID lpReserved)
@@ -1204,8 +1377,6 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 	case DLL_PROCESS_ATTACH:
 		DisableThreadLibraryCalls(hMod);
 		CreateThread(nullptr, 0, MainThread, hMod, 0, nullptr);
-		//AllocConsole();
-		//printm("Loaded");
 		break;
 	case DLL_PROCESS_DETACH:
 		kiero::shutdown();
