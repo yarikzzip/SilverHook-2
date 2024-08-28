@@ -46,11 +46,12 @@ GetCCreateEquipmentVariant CCreateEquipmentTramp;
 
 typedef CPauseGameCommand* (__fastcall* GetCPauseGameCommand)(void* pthis, __int64 a2, char a3);
 GetCPauseGameCommand CPauseGameFunc;
+GetCPauseGameCommand CPauseGameTramp;
 
 typedef CAiEnableCommand* (__fastcall* GetEnableAI)(void* pThis, int* tag, int toggled);
 GetEnableAI AIEnableFunc;
 
-typedef CChatLeaveFake* (_fastcall* GetCChatLeaveFake)(void* pThis, int eReason);
+typedef CChatLeaveFake* (_fastcall* GetCChatLeaveFake)(void* pThis, int mID);
 GetCChatLeaveFake ChatLeaveFunc;
 
 typedef LPVOID(__fastcall* GetCCommand)(__int64 a1);
@@ -71,9 +72,47 @@ typedef EmptyTest* (__fastcall* GetCustomDiff)(void* pThis, int a2);
 GetCustomDiff GetCustomF;
 GetCustomDiff GetCustomH;
 
-typedef EmptyTest* (__fastcall* GetAntiBan)(void* pThis, char a2);
+typedef EmptyTest* (__fastcall* GetJoinCommand)(void* pThis, CString* Name, int nID, __int64 a4);
+GetJoinCommand JoinHook;
+GetJoinCommand JoinTramp;
+
+typedef EmptyTest* (__fastcall* GetAutoSave)(void* pThis, bool Send);
+GetAutoSave AutoSaveFunc;
+
+typedef EmptyTest* (__fastcall* GetAntiKick)();
+GetAntiKick AntiKickFunc;
+GetAntiKick AntiKickTramp;
+
+
+typedef EmptyTest* (__fastcall* GetAntiBan)();
 GetAntiBan AntiBanFunc;
 GetAntiBan AntiBanTramp;
+
+
+typedef CSessionConfig* (__fastcall* GetSessionConfig)(void* pThis, __int64 NetAddress, void* GameName, int Type, int BasicType, int Status, __int64 Version, bool isResetAllowed);
+GetSessionConfig SessionConfigHook;
+GetSessionConfig SessionConfigTramp;
+
+typedef CMultiplayerConfig* (__fastcall* GetMultiplayerConfig)(void* pThis, void* Name, DWORD* a3, void* SessionConfig, bool IsGameOwner);
+GetMultiplayerConfig GameOwnerHook;
+GetMultiplayerConfig GameOwnerTramp;
+
+typedef void* (__fastcall* GetSendMessage)(void* pThis, void* Message, void* Buffer);
+GetSendMessage CSendMessage;
+GetSendMessage CSendMessageHook;
+
+typedef void* (__fastcall* GetMessageValue)(void* pThis, void* Message, void* User);
+GetMessageValue CMessageValueFunc;
+GetMessageValue CMessageValueHook;
+
+
+
+
+
+bool bGameOwner = false;
+bool bGameReturn = false;
+
+bool bSetSpeed = false;
 
 int FakeM = 1;
 int FakeM2 = 50;
@@ -103,11 +142,14 @@ int iMachineIDFake = 50;
 __int64 iParadoxSocialID = 0;
 CString* empty = new CString;
 
+bool bGhost2 = false;
+bool bGhost3 = false;
+
 //RemovePlayerCommand
 void* pCRemovePlayer = nullptr;
 ERemovalReason dReason;
 int RMID;
-int dRUnknown;
+__int64 dRUnknown;
 
 //GameSetState
 void* pCGameState = nullptr;
@@ -388,298 +430,6 @@ void DefaultImGui() {
 	style.Colors[ImGuiCol_CheckMark] = WhiteColor; // Checkmark
 }
 
-__int64* TagFixFunc(__int64* a1, __int64 a2) {
-
-	__int64* v2;
-	__int64* v3;
-	unsigned __int64 v5;
-	__int64 v6;
-	void* v7;
-	void* v8;
-	__int64* result;
-
-	v2 = 0i64;
-	v3 = (__int64*)a2;
-	*a1 = 0i64;
-	a1[2] = 0i64;
-	a1[3] = 0i64;
-	v5 = *(__int64*)(a2 + 16);
-	if (*(__int64*)(a2 + 24) >= 16ui64)
-		v3 = *(__int64**)a2;
-	if (v5 >= 0x10)
-	{
-		v6 = v5 | 0xF;
-		if ((v5 | 0xF) > 0x7FFFFFFFFFFFFFFFi64)
-			v6 = 0x7FFFFFFFFFFFFFFFi64;
-		if ((unsigned __int64)(v6 + 1) < 0x1000)
-		{
-			if (v6 != -1)
-				v2 = (__int64*)SizeF(v6 + 1);
-		}
-		else
-		{
-			if (v6 + 40 <= (unsigned __int64)(v6 + 1))
-				printm("Bad Array Type");
-			v7 = SizeF(v6 + 40);
-			v8 = v7;
-			v2 = (__int64*)(((unsigned __int64)v7 + 39) & 0xFFFFFFFFFFFFFFE0ui64);
-			*(v2 - 1) = (__int64)v8;
-		}
-		*a1 = *v2;
-		typedef EmptyTest* (__fastcall* Func)(__int64* a1, __int64* a2, unsigned __int64 a3);
-		Func RandFunc;
-
-		RandFunc = Func(GameBase + 0x2136D40);
-		RandFunc(v2, v3, v5 + 1);
-	}
-	else
-	{
-		v6 = 15i64;
-		*(__int64*)a1 = *v3;
-	}
-	a1[2] = v5;
-	result = a1;
-	a1[3] = v6;
-	return result;
-
-	//return *(__int64*)(a1 + 16) + 56i64;
-}
-
-
-
-
-void AnnexCountry(int tag) {
-
-
-	//Disgusting HackCode
-
-
-	int D2H4DJESOA7CJ = 251367161;
-	if (D2H4DJESOA7CJ > 251367154)
-		D2H4DJESOA7CJ = 251367128;
-	else if (D2H4DJESOA7CJ <= 251367168)
-		D2H4DJESOA7CJ++;
-	else
-		D2H4DJESOA7CJ = (251367179 / 251367166);
-	bool DG6SK98740CKP = true;
-	if (!DG6SK98740CKP)
-		DG6SK98740CKP = true;
-	else if (DG6SK98740CKP = true)
-		DG6SK98740CKP = true;
-	else
-		DG6SK98740CKP = true;
-	bool D16R2A4ZA5WKR = false;
-	if (!D16R2A4ZA5WKR)
-		D16R2A4ZA5WKR = true;
-	else if (D16R2A4ZA5WKR = true)
-		D16R2A4ZA5WKR = true;
-	else
-		D16R2A4ZA5WKR = true;
-	int DDSES5C3IXB0B = 251367187;
-	if (DDSES5C3IXB0B > 251367118)
-		DDSES5C3IXB0B = 251367108;
-	else if (DDSES5C3IXB0B <= 251367123)
-		DDSES5C3IXB0B++;
-	else
-		DDSES5C3IXB0B = (251367110 / 251367107);
-	int DJD55RON4Y04R = 251367109;
-	if (DJD55RON4Y04R > 251367194)
-		DJD55RON4Y04R = 251367155;
-	else if (DJD55RON4Y04R <= 251367133)
-		DJD55RON4Y04R++;
-	else
-		DJD55RON4Y04R = (251367117 / 251367112);
-	bool D9L8D16I270S3 = true;
-	if (!D9L8D16I270S3)
-		D9L8D16I270S3 = false;
-	else if (D9L8D16I270S3 = true)
-		D9L8D16I270S3 = true;
-	else
-		D9L8D16I270S3 = true;
-	bool DBA11L04RS4HA = false;
-	if (!DBA11L04RS4HA)
-		DBA11L04RS4HA = false;
-	else if (DBA11L04RS4HA = true)
-		DBA11L04RS4HA = false;
-	else
-		DBA11L04RS4HA = false;
-	bool D8YI6PBH70M7H = true;
-	if (!D8YI6PBH70M7H)
-		D8YI6PBH70M7H = false;
-	else if (D8YI6PBH70M7H = true)
-		D8YI6PBH70M7H = true;
-	else
-		D8YI6PBH70M7H = true;
-	int D93IEQGCBJP4L = 251367116;
-	if (D93IEQGCBJP4L > 251367193)
-		D93IEQGCBJP4L = 251367102;
-	else if (D93IEQGCBJP4L <= 251367125)
-		D93IEQGCBJP4L++;
-	else
-		D93IEQGCBJP4L = (251367157 / 251367177);
-	bool DF5BGNPC2HYZY = true;
-	if (!DF5BGNPC2HYZY)
-		DF5BGNPC2HYZY = true;
-	else if (DF5BGNPC2HYZY = false)
-		DF5BGNPC2HYZY = true;
-	else
-		DF5BGNPC2HYZY = true;
-	bool D2WM5I40F5N7G = true;
-	if (!D2WM5I40F5N7G)
-		D2WM5I40F5N7G = true;
-	else if (D2WM5I40F5N7G = true)
-		D2WM5I40F5N7G = false;
-	else
-		D2WM5I40F5N7G = true;
-	int DHHY670IZGMSZ = 251367112;
-	if (DHHY670IZGMSZ > 251367160)
-		DHHY670IZGMSZ = 251367166;
-	else if (DHHY670IZGMSZ <= 251367162)
-		DHHY670IZGMSZ++;
-	else
-		DHHY670IZGMSZ = (251367195 / 251367179);
-	int DOSOO6KDSJ525 = 251367155;
-	if (DOSOO6KDSJ525 > 251367143)
-		DOSOO6KDSJ525 = 251367140;
-	else if (DOSOO6KDSJ525 <= 251367191)
-		DOSOO6KDSJ525++;
-	else
-		DOSOO6KDSJ525 = (251367160 / 251367183);
-	bool D3GPX093G35EQ = true;
-	if (!D3GPX093G35EQ)
-		D3GPX093G35EQ = true;
-	else if (D3GPX093G35EQ = true)
-		D3GPX093G35EQ = false;
-	else
-		D3GPX093G35EQ = false;
-	bool DGELE95I8DP95 = false;
-	if (!DGELE95I8DP95)
-		DGELE95I8DP95 = false;
-	else if (DGELE95I8DP95 = true)
-		DGELE95I8DP95 = false;
-	else
-		DGELE95I8DP95 = true;
-	int DGCEZXPN9FKIS = 251367129;
-	if (DGCEZXPN9FKIS > 251367167)
-		DGCEZXPN9FKIS = 251367193;
-	else if (DGCEZXPN9FKIS <= 251367155)
-		DGCEZXPN9FKIS++;
-	else
-		DGCEZXPN9FKIS = (251367119 / 251367167);
-	int D09KC604Z9GOC = 251367136;
-	if (D09KC604Z9GOC > 251367112)
-		D09KC604Z9GOC = 251367143;
-	else if (D09KC604Z9GOC <= 251367131)
-		D09KC604Z9GOC++;
-	else
-		D09KC604Z9GOC = (251367177 / 251367135);
-	bool D7MKKCJ7OE5CW = true;
-	if (!D7MKKCJ7OE5CW)
-		D7MKKCJ7OE5CW = false;
-	else if (D7MKKCJ7OE5CW = true)
-		D7MKKCJ7OE5CW = false;
-	else
-		D7MKKCJ7OE5CW = true;
-	bool DE78OSX4PF3X6 = false;
-	if (!DE78OSX4PF3X6)
-		DE78OSX4PF3X6 = true;
-	else if (DE78OSX4PF3X6 = false)
-		DE78OSX4PF3X6 = true;
-	else
-		DE78OSX4PF3X6 = false;
-	int DG2H1W3M9CMGE = 251367122;
-	if (DG2H1W3M9CMGE > 251367129)
-		DG2H1W3M9CMGE = 251367171;
-	else if (DG2H1W3M9CMGE <= 251367176)
-		DG2H1W3M9CMGE++;
-	else
-		DG2H1W3M9CMGE = (251367125 / 251367192);
-	bool DALD5LWQZ09AE = false;
-	if (!DALD5LWQZ09AE)
-		DALD5LWQZ09AE = true;
-	else if (DALD5LWQZ09AE = false)
-		DALD5LWQZ09AE = true;
-	else
-		DALD5LWQZ09AE = false;
-	bool DC2JQWRCERB0P = true;
-	if (!DC2JQWRCERB0P)
-		DC2JQWRCERB0P = true;
-	else if (DC2JQWRCERB0P = false)
-		DC2JQWRCERB0P = true;
-	else
-		DC2JQWRCERB0P = false;
-	int DRXHCRLWNISB8 = 251367190;
-	if (DRXHCRLWNISB8 > 251367107)
-		DRXHCRLWNISB8 = 251367188;
-	else if (DRXHCRLWNISB8 <= 251367160)
-		DRXHCRLWNISB8++;
-	else
-		DRXHCRLWNISB8 = (tag / 251367163);
-	int DNQ0H7PF1G1FA = 251367170;
-	if (DNQ0H7PF1G1FA > 251367126)
-		DNQ0H7PF1G1FA = 251367154;
-	else if (DNQ0H7PF1G1FA <= 251367146)
-		DNQ0H7PF1G1FA++;
-	else
-		DNQ0H7PF1G1FA = (251367126 / 251367101);
-	bool D55H41HJE700J = false;
-	if (!D55H41HJE700J)
-		D55H41HJE700J = true;
-	else if (D55H41HJE700J = true)
-		D55H41HJE700J = true;
-	else
-		D55H41HJE700J = true;
-	int D4ZKM96EG7EN0 = 251367178;
-	if (D4ZKM96EG7EN0 > 251367160)
-		D4ZKM96EG7EN0 = 251367129;
-	else if (D4ZKM96EG7EN0 <= 251367175)
-		D4ZKM96EG7EN0++;
-	else
-		D4ZKM96EG7EN0 = (251367195 / 251367186);
-	bool D6CZ693M604QP = true;
-	if (!D6CZ693M604QP)
-		D6CZ693M604QP = true;
-	else if (D6CZ693M604QP = false)
-		D6CZ693M604QP = true;
-	else
-		D6CZ693M604QP = true;
-	bool DIG4SR0I5E3FN = true;
-	if (!DIG4SR0I5E3FN)
-		DIG4SR0I5E3FN = false;
-	else if (DIG4SR0I5E3FN = true)
-		DIG4SR0I5E3FN = false;
-	else
-		DIG4SR0I5E3FN = true;
-	int DAR13LN9XH2CO = 251367111;
-	if (DAR13LN9XH2CO > 251367194)
-		DAR13LN9XH2CO = 251367131;
-	else if (DAR13LN9XH2CO <= 251367176)
-		DAR13LN9XH2CO++;
-	else
-		DAR13LN9XH2CO = (251367131 / 251367178);
-	int DFHM2833G8RWY = 251367111;
-	if (DFHM2833G8RWY > 251367147)
-		DFHM2833G8RWY = 251367125;
-	else if (DFHM2833G8RWY <= 251367124)
-		DFHM2833G8RWY++;
-	else
-		DFHM2833G8RWY = (251367104 / 251367197);
-	int DJ5M0EMKW0GXP = 251367171;
-	if (DJ5M0EMKW0GXP > 251367115)
-		DJ5M0EMKW0GXP = 251367153;
-	else if (DJ5M0EMKW0GXP <= 251367193)
-		DJ5M0EMKW0GXP++;
-	else
-		DJ5M0EMKW0GXP = (251367157 / 251367153);
-	bool DJMPPX18D4KX6 = true;
-	if (!DJMPPX18D4KX6)
-		DJMPPX18D4KX6 = true;
-	else if (DJMPPX18D4KX6 = true)
-		DJMPPX18D4KX6 = true;
-	else
-		DJMPPX18D4KX6 = false;
-}
-
 	
 
 
@@ -736,8 +486,25 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 	if (GetAsyncKeyState(VK_INSERT) & 1)
 		bMenuOpen = !bMenuOpen;
 
-	if (GetAsyncKeyState(VK_HOME) & 1)
+	if (GetAsyncKeyState(VK_NUMPAD0) & 1)
 		StartGameFunc();
+
+		
+
+	if (GetAsyncKeyState(VK_SUBTRACT) & 1) {
+		CGameSpeed* DecreaseSpeed = (CGameSpeed*)GetCCommandFunc(80);
+		DecreaseSpeed = DecreaseSpeedFunc(DecreaseSpeed);
+		CSessionPostTramp(pCSession, DecreaseSpeed, true);
+	}
+		
+
+	if (GetAsyncKeyState(VK_ATTN) & 1) {
+		CGameSpeed* IncreaseSpeed = (CGameSpeed*)GetCCommandFunc(48);
+		IncreaseSpeed = IncreaseSpeedFunc(IncreaseSpeed);
+		CSessionPostTramp(pCSession, IncreaseSpeed, true);
+	}
+
+
 
 	if (bMenuOpen)
 	{
@@ -828,9 +595,10 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		{
 			ImGui::Text("Cheats");
 			ImGui::Checkbox("Spoof Steam Name", &bSpoofSteam);
-			ImGui::Checkbox("Join as Ghost", &bJoinAsGhost);
+			ImGui::Checkbox("Remove Name", &bJoinAsGhost);
 			ImGui::Checkbox("Multiplayer Lobby Hack", &bCE);	
 			ImGui::Checkbox("FakeSpammer", &FakeSpammer);
+			ImGui::Checkbox("Join as Ghost", &bGhost2);
 			ImGui::Text("Function Calls");
 			ImGui::Text("");
 			ImGui::Columns(2);
@@ -853,23 +621,34 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			{
 				DWORD* tt = dUnknown;
 				__int64 tP = dPdx;
-				CString* tN = dUser;
-				CString* tNN = dHname;
-				CString* empty = new CString;
+				//CString* tN = dUser;
+				//CString* tNN = dHname;
+				//CString* empty = new CString;
+
+				unsigned __int64* HOIName = (unsigned __int64*)SizeF(32ui64);
+				*HOIName = 0i64;
+				HOIName[2] = 0i64;
+				HOIName[3] = 15i64;
+
+				unsigned __int64* SteamName = (unsigned __int64*)SizeF(32ui64);
+				*SteamName = 0i64;
+				SteamName[2] = 0i64;
+				SteamName[3] = 15i64;
+
 
 				CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
 
 				FakeM2++;
 
-				tN = (CString*)memcpy(tN, "SilverHook", 10);
-				tNN = (CString*)memcpy(tNN, "RSilverXK 4on YT" ,18);
-				AddFake = CAddPlayerCommandTramp(AddFake, tN, tNN, tt, FakeM2, false, tP);
+				memcpy(HOIName, "SilverHook", 10);
+				memcpy(SteamName, "RSilverXK 4on YT" ,18);
+				AddFake = CAddPlayerCommandTramp(AddFake, (CString*)HOIName, (CString*)SteamName, tt, FakeM2, false, tP);
 
 
 				CSessionPostTramp(pCSession, AddFake, true);
 			}
 			ImGui::NextColumn();
-			if (ImGui::Button("Become Ghost", ImVec2(140, 28)) && pCSession != nullptr) {
+			if (ImGui::Button("Fake= leave", ImVec2(140, 28)) && pCSession != nullptr) {
 				/*DWORD* tt = dUnknown;
 				__int64 tP = dPdx;
 				CString* tN = dUser;
@@ -886,6 +665,26 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 				//THIS ONE IS ANNOYING, PRETTY SURE THE COMMENTED OUT FUNCTION WORKS BETTER!
 				
 			}
+			if (bGhost3) {
+				CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(200);
+				RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, dMachine, 0, dRUnknown);
+				CSessionPostTramp(pCSession, RemovePlayer, true);
+				bGhost3 = false;
+			}
+			/*(ImGui::NextColumn();
+			if (ImGui::Button("Fake Leave", ImVec2(140, 28)) && pCSession != nullptr) {
+				CChatLeaveFake* ChatLeave = (CChatLeaveFake*)GetCCommandFunc(56);
+				ChatLeave = ChatLeaveFunc(ChatLeave, iMyMachineID);
+				CSessionPostTramp(pCSession, ChatLeave, true);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Fake Leave All", ImVec2(140, 28)) && pCSession != nullptr) {
+				CChatLeaveFake* ChatLeave = (CChatLeaveFake*)GetCCommandFunc(56);
+				for (int i = 1; i < iMyMachineID; i++) {
+					ChatLeave = ChatLeaveFunc(ChatLeave, i);
+					CSessionPostTramp(pCSession, ChatLeave, true);
+				}
+			}*/
 			ImGui::Columns(1);
 			ImGui::Text("");
 			ImGui::Text("Credits: John Paradox");
@@ -947,6 +746,14 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 				CGameSpeed* IncreaseSpeed = (CGameSpeed*)GetCCommandFunc(48);
 				IncreaseSpeed = IncreaseSpeedFunc(IncreaseSpeed);
 				CSessionPostTramp(pCSession, IncreaseSpeed, true);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("AutoSave", ImVec2(140, 28)) && pCSession != nullptr) {
+				
+				EmptyTest* AutoSave = (EmptyTest*)GetCCommandFunc(56);
+				AutoSave = AutoSaveFunc(AutoSave, 1);
+
+				CSessionPostTramp(pCSession, AutoSave, true);
 			}
 			ImGui::Columns(1);
 			ImGui::Text("");
@@ -1014,16 +821,6 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 					ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
 				}
 			}
-			if (ImGui::Button("Annex") && pCSession != nullptr)
-			{
-				std::string sTagBuffer = TagBuffer;
-
-				if (sTagBuffer.length() > 0)
-				{
-					int Tag = std::stoi(sTagBuffer);
-					AnnexCountry(Tag);
-				}
-			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset"))
 			{
@@ -1035,11 +832,25 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		if (bSettingsMenu) {
 			ImGui::Text("");
 			ImGui::Checkbox("Debug", &Debug);
+			ImGui::Checkbox("GameOwner", &bGameOwner);
+			//ImGui::Checkbox("SetSpeed", &bSetSpeed);
 			ImGui::Text("Enabling debug WILL bring up a console\n as a seperate window. \nDO NOT CLOSE IT!");
+			if (ImGui::Button("Send") && pCSession != nullptr)
+			{
+				void* pThis = (void*)GetCCommandFunc(64);
+				void* Nigger = (void*)GetCCommandFunc(88);
+
+				Nigger = CMessageValueFunc(Nigger, dUser, dHname);
+				Nigger = CSendMessage(pThis, Nigger, pThis);
+
+				CSessionPostTramp(pCSession, (CCommand*)Nigger, 1);
+
+			}
 			ImGui::Text("Boost Amount:");
 			ImGui::SetNextItemWidth(70.f);
 			ImGui::InputText("", TagBuffer, IM_ARRAYSIZE(TagBuffer));
 			ImGui::SameLine();
+
 			if (ImGui::Button("Boost") && pCSession != nullptr)
 			{
 				std::string sTagBuffer = TagBuffer;
@@ -1072,9 +883,7 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
 				if (sTagBuffer.length() > 0)
 				{
-					CSetSpeed* Speed = (CSetSpeed*)GetCCommandFunc(56);
-					Speed = SetSpeedFunc(Speed, boost);
-					CSessionPostTramp(pCSession, Speed, true);
+					
 				}
 			}
 			ImGui::SameLine();
@@ -1096,7 +905,18 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		}
 		
 		
+		if (bSetSpeed) {
+			std::string sTagBuffer = TagBuffer;
+			int speed = std::stoi(TagBuffer);
 
+			if (sTagBuffer.length() > 0)
+			{
+				CSetSpeed* Speed = (CSetSpeed*)GetCCommandFunc(56);
+				Speed = SetSpeedFunc(Speed, speed);
+				CSessionPostTramp(pCSession, Speed, true);
+			}
+		}
+	
 
 
 		if (Debug) {
@@ -1109,6 +929,9 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		
 		if (bCrasher) {
 			Crasher(0);
+			EmptyTest* AutoSave = (EmptyTest*)GetCCommandFunc(56);
+			AutoSave = AutoSaveFunc(AutoSave, 1);
+			CSessionPostTramp(pCSession, AutoSave, true);
 		}
 		if (bCE) {
 			MultiplayerLobbyHack();
@@ -1122,7 +945,7 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			CString* a1 = dUser;
 			CString* a2 = dHname;
 			CString* empty = new CString;
-			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(112);
+			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
 			FakeM++;
 			(CString*)memcpy(a1, "SilverXK", 8);
 			(CString*)memcpy(a2, "RFUWG", 8);
@@ -1141,13 +964,29 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 }
 
 
-EmptyTest* __fastcall hkAntiBan(void* pThis, char a2) {
+EmptyTest* __fastcall hkAntiBan() {
 
 	printm("Ban Called");
-
-	if (!bRefuseConnect)
-		return AntiBanTramp(pThis, a2);
+	CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(200);
+	RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, dMachine, 3, dRUnknown);
+	
+	if (bRefuseConnect)
+		return (EmptyTest*)CSessionPostTramp(pCSession, RemovePlayer, true);
+	if(!bRefuseConnect)
+		return AntiBanTramp();
 }
+
+EmptyTest* __fastcall hkAntiKick() {
+
+	printm("Kick Called");
+	CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(200);
+	RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, dMachine, 2, dRUnknown);
+	if (bRefuseConnect)
+		return (EmptyTest*)CSessionPostTramp(pCSession, RemovePlayer, true);
+	if (!bRefuseConnect)
+		return AntiKickTramp();
+}
+
 
 
 bool __fastcall hkCSessionPost(void* pThis, CCommand* pCommand, bool ForceSend)
@@ -1160,11 +999,22 @@ bool __fastcall hkCSessionPost(void* pThis, CCommand* pCommand, bool ForceSend)
 	return CSessionPostTramp(pThis, pCommand, ForceSend);
 }
 
-CAddPlayerCommand* __fastcall hkCAddPlayerCommand(void* pThis, CString* User, CString* Name, DWORD* unknown, int nMachineId, bool bHotjoin, __int64 a7)
+CAddPlayerCommand* __fastcall hkCAddPlayerCommand(CAddPlayerCommand* pThis, CString* User, CString* Name, DWORD* unknown, int nMachineId, bool bHotjoin, __int64 a7)
 {
+	//CAddPlayerCommand* cmd = static_cast<CAddPlayerCommand*>(pThis);
+
+	//CString* tttt = new CString;
+	
+
+	//CString* Test = (CString*)(pThis->_User);
+
+
+	//memcpy(Test, "Test", 4);
+
 	if (iParadoxSocialID == 0)
 		iParadoxSocialID = a7;
-
+	
+	
 	iMachineIDFake = 50;
 	iMyMachineID = nMachineId;
 
@@ -1177,6 +1027,11 @@ CAddPlayerCommand* __fastcall hkCAddPlayerCommand(void* pThis, CString* User, CS
 	{
 		User = empty;
 		Name = empty;
+
+
+		//CNameChangeFunc((__int64*)(), User);
+		//if (Debug)
+			//printm("Name Called");
 	}
 	
 	pCAddPlayer = pThis;
@@ -1185,11 +1040,24 @@ CAddPlayerCommand* __fastcall hkCAddPlayerCommand(void* pThis, CString* User, CS
 	dUnknown = unknown;
 	dMachine = nMachineId;
 	dPdx = a7;
+	//if (bGhost2)
+		//bGhost3 = true;
+	int i = 0;
+	int* TagPtr = &i;
+	CAiEnableCommand* EnableAI = (CAiEnableCommand*)GetCCommandFunc(56);
+	 
+	
+	if (Debug)
+		printm("APC Called");
 
-	return CAddPlayerCommandTramp(pThis, User, Name, unknown, nMachineId, bHotjoin, a7);
+	if(!bGhost2)
+		return CAddPlayerCommandTramp(pThis, User, Name, unknown, nMachineId, bHotjoin, a7);
+
+	if(bGhost2)
+		return (CAddPlayerCommand * )AIEnableFunc(EnableAI, TagPtr, 0);
 }
 
-CRemovePlayerCommand* __fastcall hkCRemovePlayerCommand(void* pThis, int _machineID, ERemovalReason eReason, long long a4)
+CRemovePlayerCommand* __fastcall hkCRemovePlayerCommand(void* pThis, int _machineID, ERemovalReason eReason, __int64 a4)
 {
 
 	pCRemovePlayer = pThis; RMID = _machineID; dReason = eReason; dRUnknown = a4;
@@ -1285,6 +1153,93 @@ CCrash* __fastcall hkCrash(void* pThis, unsigned int a1) {
 	return CCrashTramp(pThis, a1);
 }
 
+CPauseGameCommand* __fastcall hkPauseGame(void* pThis, __int64 a2, char a3, char a4) {
+	if (Debug) {
+		printm("hkPauseGame Called");
+		std::string x = std::to_string(a2);
+		printm(x);
+		x = std::to_string(a3);
+		printm(x);
+		x = std::to_string(a4);
+		printm(x);
+	}
+	return CPauseGameTramp(pThis, a2, a3);
+}
+
+EmptyTest* __fastcall hkJoinCommand(void* pThis, CString* Name, int nID, __int64 a4) {
+
+	if (Debug) {
+		std::string x = std::to_string(nID);
+		printm(x);
+		printm((char*)Name);
+	}
+
+	
+		return JoinTramp(pThis, Name, nID, a4);
+	
+	
+}
+
+
+CSessionConfig* __fastcall hkSessionConfig(void* pThis, __int64 NetAddress, void* GameName, int Type, int BasicType, int Status, __int64 Version, bool isResetAllowed) {
+
+
+
+
+	if (bGameOwner) {
+		isResetAllowed = 1;
+		Type = 2;
+		//BasicType = 1;
+		//Status = 1;
+	}
+
+	if (Debug) {
+		printm("SessionConfig Called");
+		printm(std::to_string(Type));
+		printm(std::to_string(BasicType));
+		printm(std::to_string(Status));
+		printm(std::to_string(Version));
+		printm(std::to_string(isResetAllowed));
+	}
+
+	
+
+
+	return SessionConfigTramp(pThis, NetAddress, GameName, Type, BasicType, Status, Version, isResetAllowed);
+}
+
+
+CMultiplayerConfig* __fastcall hkGameOwner(void* pThis, void* Name, DWORD* a2, void* SessionConfig, bool IsGameOwner) {
+
+	if (bGameOwner)
+		IsGameOwner = 1;
+
+
+
+	if (Debug) {
+		printm("GameOwner Called");
+		printm(std::to_string(IsGameOwner));
+	}
+
+	
+	return GameOwnerTramp(pThis, Name, a2, SessionConfig, IsGameOwner);
+}
+
+void* __fastcall hkSendMessage(void* pThis, CString* Message, void* pBuffer) {
+
+
+	if(Debug){
+		printm("SendMessageCalled");
+		//std::to_string(Message);
+		printm((char*)Message);
+		printm((char*)pBuffer);
+	}
+
+
+
+	return CSendMessage(pThis, Message, pBuffer);
+}
+
 
 
 void HookFunctions() {
@@ -1297,7 +1252,7 @@ void HookFunctions() {
 	MH_CreateHook(CAddPlayerCommandHook, &hkCAddPlayerCommand, (LPVOID*)&CAddPlayerCommandTramp);
 	MH_EnableHook(CAddPlayerCommandHook);
 	
-
+	AutoSaveFunc = GetAutoSave(GameBase + 0x0C2EC50);
 
 	CGameStateSetPlayerHook = CGameStateSetPlayer(GameBase + 0x1BCCA0);
 
@@ -1309,6 +1264,22 @@ void HookFunctions() {
 	MH_CreateHook(CRemovePlayerCommandHook, &hkCRemovePlayerCommand, (LPVOID*)&CRemovePlayerCommandTramp);
 	MH_EnableHook(CRemovePlayerCommandHook);
 
+	SessionConfigHook = GetSessionConfig(GameBase + 0x1E7E990);
+	MH_CreateHook(SessionConfigHook, &hkSessionConfig, (LPVOID*)&SessionConfigTramp);
+	MH_EnableHook(SessionConfigHook);
+
+	GameOwnerHook = GetMultiplayerConfig(GameBase + 0x16502F0);
+	MH_CreateHook(GameOwnerHook, &hkGameOwner, (LPVOID*)&GameOwnerTramp);
+	MH_EnableHook(GameOwnerHook);
+
+
+
+	CSendMessageHook = GetSendMessage(GameBase + 0x1E939A0);
+	MH_CreateHook(CSendMessageHook, &hkSendMessage, (LPVOID*)&CSendMessage);
+	MH_EnableHook(CSendMessageHook);
+
+	CMessageValueFunc = GetMessageValue(GameBase + 0x1E90D20);
+
 	//CChatMessageHook = GetCChatMessage(GameBase + 0x1E939A0);
 	//MH_CreateHook(CChatMessageHook, &hkChatMessage, (LPVOID*)&CChatMessageTramp);
 	//MH_EnableHook(CChatMessageHook);
@@ -1317,24 +1288,39 @@ void HookFunctions() {
 	MH_CreateHook(CCreateEquipmentFunc, &hkCCreateEquipment, (LPVOID*)&CCreateEquipmentTramp);
 	MH_EnableHook(CCreateEquipmentFunc);
 
-	AntiBanFunc = GetAntiBan(GameBase + 0x1F97540);
-	MH_CreateHook(AntiBanFunc, &hkAntiBan, (LPVOID*)&AntiBanTramp);
-	MH_EnableHook(AntiBanFunc);
+	//AntiBanFunc = GetAntiBan(GameBase + 0x1DE1610);
+	//AntiBanFunc = GetAntiBan(GameBase + 0x1F97540);
+	//MH_CreateHook(AntiBanFunc, &hkAntiBan, (LPVOID*)&AntiBanTramp);
+	//MH_EnableHook(AntiBanFunc);
 
-	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x104F70);
+	//AntiKickFunc = GetAntiKick(GameBase + 0x1DE29B0);
+	//MH_CreateHook(AntiKickFunc, &hkAntiKick, (LPVOID*)&AntiKickTramp);
+	//MH_EnableHook(AntiKickFunc);
+
+	CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x104F70);
 	CCrashFunc = GetCCrash(GameBase + 0x1650FF0);
 	MH_CreateHook(CCrashFunc, &hkCrash, (LPVOID*)&CCrashTramp);
 	MH_EnableHook(CCrashFunc);
+
+
+
+	JoinHook = GetJoinCommand(GameBase + 0x109ADE0);
+	MH_CreateHook(JoinHook, &hkJoinCommand, (LPVOID*)&JoinTramp);
+	MH_EnableHook(JoinHook);
+		
+
 
 	CStartGameCommandFunc = GetCStartGameCommand(GameBase + 0x12724F0);
 	MH_CreateHook(CStartGameCommandFunc, &hkStartGame, (LPVOID*)&CStartGameCommandTramp);
 	MH_EnableHook(CStartGameCommandFunc);
 	GetCCommandFunc = GetCCommand(GameBase + 0x2112854);
-	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x170C430);
+	
 	AIEnableFunc = GetEnableAI(GameBase + 0xBD4EB0);
 	ChatLeaveFunc = GetCChatLeaveFake(GameBase + 0x109AED0);
-	CPauseGameFunc = GetCPauseGameCommand(GameBase + 0xC2EEC0);
 
+	CPauseGameFunc = GetCPauseGameCommand(GameBase + 0xC2EEC0);
+	MH_CreateHook(CPauseGameFunc, &hkPauseGame, (LPVOID*)&CPauseGameTramp);
+	MH_EnableHook(CPauseGameFunc);
 
 	//Dont be mistaken these are different addresses!
 	IncreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD121F0);
@@ -1350,6 +1336,7 @@ void HookFunctions() {
 	MH_CreateHook(GetCustomF, &hkCustomDiff, (LPVOID*)&GetCustomH);
 	MH_EnableHook(GetCustomF);
 
+	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x170C430);
 	/*MH_CreateHook(CNameChangeFunc, &hkNameChange, (LPVOID*)&CNameChangeTramp);
 	MH_EnableHook(CNameChangeFunc);*/
 }

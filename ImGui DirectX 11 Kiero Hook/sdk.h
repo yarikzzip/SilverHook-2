@@ -128,7 +128,7 @@ struct CAiEnableCommand : CCommand
 
 struct CChatLeaveFake : CCommand
 {
-
+	int _machineID;
 };
 
 struct CCreateEquipmentVariant : CCommand
@@ -145,3 +145,23 @@ struct EmptyTest : CCommand
 {
 
 };
+
+
+struct CSessionConfig {
+	__int64 _NetAddress;
+	CString* _GameName;
+	int _Type;
+	int _BasicType;
+	int _Status;
+	__int64 _Version;
+	bool _IsResetAllowed;
+};
+
+struct CMultiplayerConfig {
+	CString* _Name;
+	DWORD* _a2;
+	void* _SessionConfig;
+	bool _IsGameOwner;
+
+};
+
