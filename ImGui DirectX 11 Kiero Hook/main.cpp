@@ -7,6 +7,9 @@
 #include <string>
 #include "obfuscation.h"
 
+
+
+
 typedef bool(__fastcall* CSessionPost)(void* pThis, CCommand* pCommand, bool ForceSend);
 CSessionPost CSessionPostHook;
 CSessionPost CSessionPostTramp;
@@ -104,8 +107,6 @@ GetSendMessage CSendMessageHook;
 typedef void* (__fastcall* GetMessageValue)(void* pThis, void* Message, void* User);
 GetMessageValue CMessageValueFunc;
 GetMessageValue CMessageValueHook;
-
-
 
 
 
@@ -214,7 +215,7 @@ void PatchMemory(uintptr_t address, unsigned char* patch, DWORD size)
 void MultiplayerLobbyHack()
 {
 
-	uintptr_t address = GameBase + 0x185CD2F;
+	uintptr_t address = GameBase + 0x185CEFF;
 
 	unsigned char patch[] = { 0x74, 0x0F, 0x83, 0xFA, 0x01, 0x00 }; 
 
@@ -222,7 +223,7 @@ void MultiplayerLobbyHack()
 
 	if (MLHmem != nullptr)
 	{
-		DWORD relativeOffset = (GameBase + 0x185CD40) - (address + sizeof(patch));
+		DWORD relativeOffset = (GameBase + 0x185CF10) - (address + sizeof(patch));
 		memcpy(MLHmem, patch, sizeof(patch));
 		*(BYTE*)((uintptr_t)MLHmem) = 0x0F;
 		*(BYTE*)((uintptr_t)MLHmem + 1) = 0x83;
@@ -948,7 +949,7 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
 			FakeM++;
 			(CString*)memcpy(a1, "SilverXK", 8);
-			(CString*)memcpy(a2, "RFUWG", 8);
+			(CString*)memcpy(a2, "RSilverXK 4on YT", 18);
 			AddFake = CAddPlayerCommandTramp(AddFake, a1, a2, a3, FakeM, false, a4);
 			CSessionPostTramp(pCSession, AddFake, true);
 		}
@@ -1244,47 +1245,47 @@ void* __fastcall hkSendMessage(void* pThis, CString* Message, void* pBuffer) {
 
 void HookFunctions() {
 
-	CSessionPostHook = CSessionPost(GameBase + 0x1DE2AF0);
+	CSessionPostHook = CSessionPost(GameBase + 0x1DE2CC0);
 	MH_CreateHook(CSessionPostHook, &hkCSessionPost, (LPVOID*)&CSessionPostTramp);
 	MH_EnableHook(CSessionPostHook);
 
-	CAddPlayerCommandHook = GetCAddPlayerCommand(GameBase + 0x1650E80);
+	CAddPlayerCommandHook = GetCAddPlayerCommand(GameBase + 0x1651050);
 	MH_CreateHook(CAddPlayerCommandHook, &hkCAddPlayerCommand, (LPVOID*)&CAddPlayerCommandTramp);
 	MH_EnableHook(CAddPlayerCommandHook);
 	
-	AutoSaveFunc = GetAutoSave(GameBase + 0x0C2EC50);
+	AutoSaveFunc = GetAutoSave(GameBase + 0x0C2EDE0);
 
 	CGameStateSetPlayerHook = CGameStateSetPlayer(GameBase + 0x1BCCA0);
 
 	MH_CreateHook(CGameStateSetPlayerHook, &hkCGameStateSetPlayer, (LPVOID*)&CGameStateSetPlayerTramp);
 	MH_EnableHook(CGameStateSetPlayerHook);
 
-	CRemovePlayerCommandHook = GetCRemovePlayerCommand(GameBase + 0x1650F60);
+	CRemovePlayerCommandHook = GetCRemovePlayerCommand(GameBase + 0x1651130);
 
 	MH_CreateHook(CRemovePlayerCommandHook, &hkCRemovePlayerCommand, (LPVOID*)&CRemovePlayerCommandTramp);
 	MH_EnableHook(CRemovePlayerCommandHook);
 
-	SessionConfigHook = GetSessionConfig(GameBase + 0x1E7E990);
-	MH_CreateHook(SessionConfigHook, &hkSessionConfig, (LPVOID*)&SessionConfigTramp);
-	MH_EnableHook(SessionConfigHook);
+	//SessionConfigHook = GetSessionConfig(GameBase + 0x1E7E990);
+	//MH_CreateHook(SessionConfigHook, &hkSessionConfig, (LPVOID*)&SessionConfigTramp);
+	//MH_EnableHook(SessionConfigHook);
 
-	GameOwnerHook = GetMultiplayerConfig(GameBase + 0x16502F0);
-	MH_CreateHook(GameOwnerHook, &hkGameOwner, (LPVOID*)&GameOwnerTramp);
-	MH_EnableHook(GameOwnerHook);
+	//GameOwnerHook = GetMultiplayerConfig(GameBase + 0x16502F0);
+	//MH_CreateHook(GameOwnerHook, &hkGameOwner, (LPVOID*)&GameOwnerTramp);
+	//MH_EnableHook(GameOwnerHook);
 
 
 
-	CSendMessageHook = GetSendMessage(GameBase + 0x1E939A0);
-	MH_CreateHook(CSendMessageHook, &hkSendMessage, (LPVOID*)&CSendMessage);
-	MH_EnableHook(CSendMessageHook);
+	//CSendMessageHook = GetSendMessage(GameBase + 0x1E939A0);
+	//MH_CreateHook(CSendMessageHook, &hkSendMessage, (LPVOID*)&CSendMessage);
+	//MH_EnableHook(CSendMessageHook);
 
-	CMessageValueFunc = GetMessageValue(GameBase + 0x1E90D20);
+	//CMessageValueFunc = GetMessageValue(GameBase + 0x1E90D20);
 
 	//CChatMessageHook = GetCChatMessage(GameBase + 0x1E939A0);
 	//MH_CreateHook(CChatMessageHook, &hkChatMessage, (LPVOID*)&CChatMessageTramp);
 	//MH_EnableHook(CChatMessageHook);
 
-	CCreateEquipmentFunc = GetCCreateEquipmentVariant(GameBase + 0x170C870);
+	CCreateEquipmentFunc = GetCCreateEquipmentVariant(GameBase + 0x170CA40);
 	MH_CreateHook(CCreateEquipmentFunc, &hkCCreateEquipment, (LPVOID*)&CCreateEquipmentTramp);
 	MH_EnableHook(CCreateEquipmentFunc);
 
@@ -1297,44 +1298,44 @@ void HookFunctions() {
 	//MH_CreateHook(AntiKickFunc, &hkAntiKick, (LPVOID*)&AntiKickTramp);
 	//MH_EnableHook(AntiKickFunc);
 
-	CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x104F70);
-	CCrashFunc = GetCCrash(GameBase + 0x1650FF0);
+	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x104F70);
+	CCrashFunc = GetCCrash(GameBase + 0x16511C0);
 	MH_CreateHook(CCrashFunc, &hkCrash, (LPVOID*)&CCrashTramp);
 	MH_EnableHook(CCrashFunc);
 
 
 
-	JoinHook = GetJoinCommand(GameBase + 0x109ADE0);
-	MH_CreateHook(JoinHook, &hkJoinCommand, (LPVOID*)&JoinTramp);
-	MH_EnableHook(JoinHook);
+	//JoinHook = GetJoinCommand(GameBase + 0x109ADE0);
+	//MH_CreateHook(JoinHook, &hkJoinCommand, (LPVOID*)&JoinTramp);
+	//MH_EnableHook(JoinHook);
 		
 
 
-	CStartGameCommandFunc = GetCStartGameCommand(GameBase + 0x12724F0);
+	CStartGameCommandFunc = GetCStartGameCommand(GameBase + 0x1272680);
 	MH_CreateHook(CStartGameCommandFunc, &hkStartGame, (LPVOID*)&CStartGameCommandTramp);
 	MH_EnableHook(CStartGameCommandFunc);
-	GetCCommandFunc = GetCCommand(GameBase + 0x2112854);
+	GetCCommandFunc = GetCCommand(GameBase + 0x2112A24);
 	
-	AIEnableFunc = GetEnableAI(GameBase + 0xBD4EB0);
-	ChatLeaveFunc = GetCChatLeaveFake(GameBase + 0x109AED0);
+	AIEnableFunc = GetEnableAI(GameBase + 0xBD5040);
+	//ChatLeaveFunc = GetCChatLeaveFake(GameBase + 0x109AED0);
 
-	CPauseGameFunc = GetCPauseGameCommand(GameBase + 0xC2EEC0);
+	CPauseGameFunc = GetCPauseGameCommand(GameBase + 0xC2F050);
 	MH_CreateHook(CPauseGameFunc, &hkPauseGame, (LPVOID*)&CPauseGameTramp);
 	MH_EnableHook(CPauseGameFunc);
 
 	//Dont be mistaken these are different addresses!
-	IncreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD121F0);
-	DecreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD12120);
+	IncreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD12380);
+	DecreaseSpeedFunc = GetCGameSpeed(GameBase + 0xD12250);
 
-	SetSpeedFunc = GetCGameSetSpeed(GameBase + 0xD12240);
+	SetSpeedFunc = GetCGameSetSpeed(GameBase + 0xD123D0);
 
-	GCDMF = GetCustomDiffM(GameBase + 0x1272280);
+	GCDMF = GetCustomDiffM(GameBase + 0x1272410);
 	MH_CreateHook(GCDMF, &hkCustomDiffM, (LPVOID*)&GCDMH);
 	MH_EnableHook(GCDMF);
 
-	GetCustomF = GetCustomDiff(GameBase + 0x12722F0);
-	MH_CreateHook(GetCustomF, &hkCustomDiff, (LPVOID*)&GetCustomH);
-	MH_EnableHook(GetCustomF);
+	//GetCustomF = GetCustomDiff(GameBase + 0x12722F0);
+	//MH_CreateHook(GetCustomF, &hkCustomDiff, (LPVOID*)&GetCustomH);
+	//MH_EnableHook(GetCustomF);
 
 	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x170C430);
 	/*MH_CreateHook(CNameChangeFunc, &hkNameChange, (LPVOID*)&CNameChangeTramp);
