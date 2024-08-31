@@ -27,7 +27,7 @@ Uses <a href="https://github.com/Rebzzel/kiero">KieroHook</a>, <a href="https://
 - Boost Yourself
 (Only majors can be boosted, to boost yourself go to singleplayer and custom game rules and click any arrow in the boost part of the rules thats on your country, then the country tag under the boost amount should be a bunch of numbers, than you can enter any number preferably larger than 250 to boost your own country in any game for that session)
 
-#Screenshots of Cheat
+# Screenshots of Cheat
 ## (Anything thats rubbed out in Red isnt in the offical version, just my one
 ![image](https://github.com/user-attachments/assets/f6db91df-c3a4-43b9-805b-063d0940732e)
 ![image](https://github.com/user-attachments/assets/01eece21-31b6-407e-a75f-ec875bf4759b)
