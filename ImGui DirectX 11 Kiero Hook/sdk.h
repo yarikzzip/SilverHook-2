@@ -68,12 +68,12 @@ struct CCommand : CPersistent
 
 struct CAddPlayerCommand : CCommand
 {
-	CString* _User;
+	CString* _User; //hoi
 	CString* _Name;
-	DWORD _Null;
+	//DWORD _Null;
 	int _nMachineId;
 	bool _bHotjoin;
-	__int64 a7;
+	__int64 Social;
 };
 
 struct CRemovePlayerCommand : CCommand
@@ -103,6 +103,9 @@ struct CSetSpeed : CCommand
 	int speed;
 };
 
+struct CMultiplayerConfiguration {
+
+};
 // All these empty structs might aswell just be (void*)... something something CCommand inheritance
 
 

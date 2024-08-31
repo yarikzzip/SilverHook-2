@@ -31,7 +31,7 @@ CGameStateSetPlayer CGameStateSetPlayerHook;
 CGameStateSetPlayer CGameStateSetPlayerTramp;
 
 
-typedef CNameChange* (__fastcall* GetCNameChangeCommand)(void* pThis, CString* name);
+typedef CNameChange* (__fastcall* GetCNameChangeCommand)(void* pThis, void* name);
 GetCNameChangeCommand CNameChangeFunc;
 GetCNameChangeCommand CNameChangeTramp;
 
@@ -371,7 +371,7 @@ void ChangeByteAddressValue(uintptr_t addr)
 	VirtualProtect(pValue, sizeof(BYTE), oldProtect, &oldProtect);
 }
 
-
+void* x = operator new(38);
 //IngameFunctions
 void Crasher(int a1) {
 	CCrash* x = (CCrash*)GetCCommandFunc(48);
@@ -666,6 +666,14 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 				//THIS ONE IS ANNOYING, PRETTY SURE THE COMMENTED OUT FUNCTION WORKS BETTER!
 				
 			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Disable DLCs", ImVec2(140, 28)) && pCSession != nullptr) {
+				Crasher(0);
+			}
+			ImGui::NextColumn();
+			if (ImGui::Button("Enable DLCs", ImVec2(140, 28)) && pCSession != nullptr) {
+				Crasher(4095);
+			}
 			if (bGhost3) {
 				CRemovePlayerCommand* RemovePlayer = (CRemovePlayerCommand*)GetCCommandFunc(200);
 				RemovePlayer = CRemovePlayerCommandTramp(RemovePlayer, dMachine, 0, dRUnknown);
@@ -819,7 +827,10 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 				if (sTagBuffer.length() > 0)
 				{
 					int Tag = std::stoi(sTagBuffer);
-					ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
+					int* pTag = &Tag;
+					CGameStateSetPlayerTramp(pCGameState, pTag);
+
+					//ChangeIntAddressValue(0x2C97110, 0x4B0, Tag);
 				}
 			}
 			ImGui::SameLine();
@@ -838,13 +849,7 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			ImGui::Text("Enabling debug WILL bring up a console\n as a seperate window. \nDO NOT CLOSE IT!");
 			if (ImGui::Button("Send") && pCSession != nullptr)
 			{
-				void* pThis = (void*)GetCCommandFunc(64);
-				void* Nigger = (void*)GetCCommandFunc(88);
-
-				Nigger = CMessageValueFunc(Nigger, dUser, dHname);
-				Nigger = CSendMessage(pThis, Nigger, pThis);
-
-				CSessionPostTramp(pCSession, (CCommand*)Nigger, 1);
+				
 
 			}
 			ImGui::Text("Boost Amount:");
@@ -949,7 +954,7 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 			CAddPlayerCommand* AddFake = (CAddPlayerCommand*)GetCCommandFunc(200);
 			FakeM++;
 			(CString*)memcpy(a1, "SilverXK", 8);
-			(CString*)memcpy(a2, "RSilverXK 4on YT", 18);
+			(CString*)memcpy(a2, "discord/k2EBbsQf69", 18);
 			AddFake = CAddPlayerCommandTramp(AddFake, a1, a2, a3, FakeM, false, a4);
 			CSessionPostTramp(pCSession, AddFake, true);
 		}
@@ -1029,15 +1034,16 @@ CAddPlayerCommand* __fastcall hkCAddPlayerCommand(CAddPlayerCommand* pThis, CStr
 		User = empty;
 		Name = empty;
 
+		//User->_str = "Test";
 
-		//CNameChangeFunc((__int64*)(), User);
+		//CNameChangeFunc(&pThis->_User, User);
 		//if (Debug)
 			//printm("Name Called");
 	}
 	
 	pCAddPlayer = pThis;
-	dUser = User;
-	dHname = Name;
+	dUser = (CString*)User;
+	dHname = (CString*)Name;
 	dUnknown = unknown;
 	dMachine = nMachineId;
 	dPdx = a7;
@@ -1052,7 +1058,7 @@ CAddPlayerCommand* __fastcall hkCAddPlayerCommand(CAddPlayerCommand* pThis, CStr
 		printm("APC Called");
 
 	if(!bGhost2)
-		return CAddPlayerCommandTramp(pThis, User, Name, unknown, nMachineId, bHotjoin, a7);
+		return CAddPlayerCommandTramp(pThis, (CString*)User, (CString*)Name, unknown, nMachineId, bHotjoin, a7);
 
 	if(bGhost2)
 		return (CAddPlayerCommand * )AIEnableFunc(EnableAI, TagPtr, 0);
@@ -1337,7 +1343,7 @@ void HookFunctions() {
 	//MH_CreateHook(GetCustomF, &hkCustomDiff, (LPVOID*)&GetCustomH);
 	//MH_EnableHook(GetCustomF);
 
-	//CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x170C430);
+	CNameChangeFunc = GetCNameChangeCommand(GameBase + 0x0104F70);
 	/*MH_CreateHook(CNameChangeFunc, &hkNameChange, (LPVOID*)&CNameChangeTramp);
 	MH_EnableHook(CNameChangeFunc);*/
 }
