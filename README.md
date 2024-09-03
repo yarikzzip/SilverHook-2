@@ -1,3 +1,6 @@
+# Contact me!
+Id love to find more people who are interested in coding and schtuff like this, who could help, add their own features and alllll of that. So please, add me on discord! My tag is: ilovemassmob
+
 # SilverHook
 Internal HOI4 Cheat for Windows
 Uses static memory addresses
